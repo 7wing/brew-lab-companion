@@ -12,6 +12,8 @@ import {
   X,
   Search,
   Bell,
+  Plus,
+  Video,
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import BubbleBackground from "./BubbleBackground";
@@ -22,6 +24,8 @@ const navItems = [
   { path: "/monitor", label: "Monitor", icon: Activity },
   { path: "/community", label: "Community", icon: Users },
   { path: "/challenges", label: "Challenges", icon: Trophy },
+  { path: "/new-brew", label: "New Brew", icon: Plus },
+  { path: "/live-tasting", label: "Live Tasting", icon: Video },
   { path: "/profile", label: "Profile", icon: User },
 ];
 
