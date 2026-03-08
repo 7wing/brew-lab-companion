@@ -6,6 +6,7 @@ import {
   Beaker,
   Thermometer,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import BatchCard from "@/components/BatchCard";
 import ReadingsTable from "@/components/ReadingsTable";
 import GravityCurve from "@/components/GravityCurve";
