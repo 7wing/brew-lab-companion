@@ -6,6 +6,7 @@ import {
   Beaker,
   Thermometer,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import BatchCard from "@/components/BatchCard";
 import ReadingsTable from "@/components/ReadingsTable";
 import GravityCurve from "@/components/GravityCurve";
@@ -92,10 +93,10 @@ const Index = () => {
             5 active batches — 2 actions pending
           </p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-copper to-copper/80 text-copper-foreground font-medium text-sm shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5">
+        <Link to="/new-brew" className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-copper to-copper/80 text-copper-foreground font-medium text-sm shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5">
           <Plus size={16} />
           Start New Brew
-        </button>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[240px_1fr_320px] gap-6">

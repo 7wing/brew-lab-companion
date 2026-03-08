@@ -11,6 +11,8 @@ import Community from "./pages/Community";
 import Challenges from "./pages/Challenges";
 import Profile from "./pages/Profile";
 import BatchDetail from "./pages/BatchDetail";
+import BrewSetup from "./pages/BrewSetup";
+import LiveTasting from "./pages/LiveTasting";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +32,8 @@ const App = () => (
             <Route path="/challenges" element={<Challenges />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/batch/:id" element={<BatchDetail />} />
+            <Route path="/new-brew" element={<BrewSetup />} />
+            <Route path="/live-tasting" element={<LiveTasting />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AppLayout>

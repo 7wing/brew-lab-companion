@@ -12,6 +12,8 @@ import {
   X,
   Search,
   Bell,
+  Plus,
+  Video,
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import BubbleBackground from "./BubbleBackground";
@@ -22,6 +24,8 @@ const navItems = [
   { path: "/monitor", label: "Monitor", icon: Activity },
   { path: "/community", label: "Community", icon: Users },
   { path: "/challenges", label: "Challenges", icon: Trophy },
+  { path: "/new-brew", label: "New Brew", icon: Plus },
+  { path: "/live-tasting", label: "Live Tasting", icon: Video },
   { path: "/profile", label: "Profile", icon: User },
 ];
 
@@ -140,8 +144,8 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
         )}
 
         {/* Main content */}
-        <main className="flex-1 lg:ml-56 relative z-10">
-          <div className="p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto">
+        <main className="flex-1 lg:ml-56 relative z-10 min-h-0 overflow-y-auto">
+          <div className="p-4 md:p-6 lg:p-8 pb-24 lg:pb-8 max-w-[1600px] mx-auto">
             {children}
           </div>
         </main>
