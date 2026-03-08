@@ -3,7 +3,14 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import AppLayout from "./components/AppLayout";
 import Index from "./pages/Index";
+import RecipeVault from "./pages/RecipeVault";
+import FermentationMonitor from "./pages/FermentationMonitor";
+import Community from "./pages/Community";
+import Challenges from "./pages/Challenges";
+import Profile from "./pages/Profile";
+import BatchDetail from "./pages/BatchDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -14,11 +21,18 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AppLayout>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/recipes" element={<RecipeVault />} />
+            <Route path="/monitor" element={<FermentationMonitor />} />
+            <Route path="/community" element={<Community />} />
+            <Route path="/challenges" element={<Challenges />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/batch/:id" element={<BatchDetail />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AppLayout>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
