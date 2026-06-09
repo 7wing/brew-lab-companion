@@ -26,7 +26,6 @@ Homebrew Haven is a React 18 + Vite + TailwindCSS + shadcn/ui app for tracking h
 - Never alter existing project configuration (`vite.config.ts`, `tailwind.config.ts`, `tsconfig.json`) unless explicitly required and noted
 - All new code must use TanStack Query v5, React Hook Form + Zod, and Supabase JS v2 patterns
 - Do not expose `SUPABASE_SERVICE_ROLE_KEY` to the frontend — ever
-- Use existing shadcn/ui components; do not introduce new UI libraries
 - Do not modify `.env.local` or commit secrets
 - Do not call Supabase directly inside JSX render — always go through hooks
 - Do not use `localStorage` or `sessionStorage` for auth state — Supabase handles it
@@ -41,7 +40,6 @@ The agent should assume the following before starting:
 - The human will execute `SUPABASE_STEPS.md` SQL in the Supabase SQL Editor before running the app
 - TypeScript database types will be regenerated after schema creation — use a minimal placeholder until then
 - `@supabase/supabase-js` is not yet installed and must be added
-- All existing UI components and pages exist but use static/mock data — do not rewrite them, only wire them up
 
 ---
 
@@ -451,6 +449,4 @@ Set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in the Vercel dashboard env
 - Do not use `localStorage` or `sessionStorage` for auth state — Supabase handles it
 - Do not skip RLS — every table must have row level security enabled before going live
 - Do not use the service role key on the frontend — it bypasses RLS entirely
-- Do not rewrite existing UI components — only wire them up to real data
-- Do not introduce new UI libraries — use existing shadcn/ui components only
 - Do not skip the build verification step at the end of each phase
