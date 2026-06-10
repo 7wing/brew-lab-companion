@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   Camera,
@@ -90,48 +91,60 @@ const BatchDetail = () => {
 
   async function handleLogReading() {
     if (!id) return;
-    await createReading.mutateAsync({
-      batch_id: id,
-      gravity: parseFloat(logGravity) || og,
-      temp_f: logTemp ? parseFloat(logTemp) : null,
-      ph: logPh ? parseFloat(logPh) : null,
-      notes: logNotes || null,
-    });
-    setLogOpen(false);
-    setLogGravity("");
-    setLogTemp("");
-    setLogPh("");
-    setLogNotes("");
+    try {
+      await createReading.mutateAsync({
+        batch_id: id,
+        gravity: parseFloat(logGravity) || og,
+        temp_f: logTemp ? parseFloat(logTemp) : null,
+        ph: logPh ? parseFloat(logPh) : null,
+        notes: logNotes || null,
+      });
+      setLogOpen(false);
+      setLogGravity("");
+      setLogTemp("");
+      setLogPh("");
+      setLogNotes("");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to log reading");
+    }
   }
 
   async function handleTastingNote() {
     if (!id) return;
-    const session = await tastingSession.createSession(`${batch.name} Tasting`);
-    await createTastingNote.mutateAsync({
-      sessionId: session.id,
-      aroma: tastingAroma,
-      flavor: tastingFlavor,
-      mouthfeel: tastingMouthfeel,
-      overall: tastingOverall,
-    });
-    setTastingOpen(false);
-    setTastingAroma("");
-    setTastingFlavor("");
-    setTastingMouthfeel("");
-    setTastingOverall("");
+    try {
+      const session = await tastingSession.createSession(`${batch.name} Tasting`);
+      await createTastingNote.mutateAsync({
+        sessionId: session.id,
+        aroma: tastingAroma,
+        flavor: tastingFlavor,
+        mouthfeel: tastingMouthfeel,
+        overall: tastingOverall,
+      });
+      setTastingOpen(false);
+      setTastingAroma("");
+      setTastingFlavor("");
+      setTastingMouthfeel("");
+      setTastingOverall("");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to save tasting note");
+    }
   }
 
   async function handleShare() {
     if (!id) return;
-    await createPost.mutateAsync({
-      category: 'tasting',
-      title: shareTitle || `${batch.name} — Tasting Notes`,
-      content: shareContent || `Sharing my progress on ${batch.name}. Day ${daysElapsed} of ${batch.target_days}.`,
-      type: batch.type,
-    });
-    setShareOpen(false);
-    setShareTitle("");
-    setShareContent("");
+    try {
+      await createPost.mutateAsync({
+        category: 'tasting',
+        title: shareTitle || `${batch.name} — Tasting Notes`,
+        content: shareContent || `Sharing my progress on ${batch.name}. Day ${daysElapsed} of ${batch.target_days}.`,
+        type: batch.type,
+      });
+      setShareOpen(false);
+      setShareTitle("");
+      setShareContent("");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to share post");
+    }
   }
 
   return (
@@ -297,13 +310,17 @@ const BatchDetail = () => {
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file || !id) return;
-                    const url = await uploadPhoto(file, `${id}/${Date.now()}.jpg`);
-                    if (url) {
-                      await createReading.mutateAsync({
-                        batch_id: id,
-                        gravity: currentGravity,
-                        photo_url: url,
-                      });
+                    try {
+                      const url = await uploadPhoto(file, `${id}/${Date.now()}.jpg`);
+                      if (url) {
+                        await createReading.mutateAsync({
+                          batch_id: id,
+                          gravity: currentGravity,
+                          photo_url: url,
+                        });
+                      }
+                    } catch (err: any) {
+                      toast.error(err?.message || "Failed to upload photo");
                     }
                     e.target.value = "";
                   }}

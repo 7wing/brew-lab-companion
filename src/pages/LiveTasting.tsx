@@ -1,7 +1,16 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
+import {
+  useLatestTastingSession,
+  useCreateTastingSession,
+  useCreateTastingNote,
+} from "@/hooks/useTastingNotes";
+import {
+  useTastingMessages,
+  useSendTastingMessage,
+} from "@/hooks/useTastingMessages";
 import {
   Video,
   MessageSquare,
@@ -44,70 +53,17 @@ const LiveTasting = () => {
   });
 
   /* ── Session ── */
-  const { data: session, isLoading: sessionLoading } = useQuery({
-    queryKey: ["tasting-session"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("tasting_sessions")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user,
-  });
-
+  const {
+    data: session,
+    isLoading: sessionLoading,
+  } = useLatestTastingSession();
   const sessionId = session?.id;
-
-  const createSession = useMutation({
-    mutationFn: async () => {
-      if (!user) throw new Error("Not authenticated");
-      const { data, error } = await supabase
-        .from("tasting_sessions")
-        .insert({
-          host_id: user.id,
-          title: "Live Tasting",
-          is_live: true,
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["tasting-session"] }),
-  });
+  const createSession = useCreateTastingSession();
 
   /* ── Messages ── */
-  const { data: messages, isLoading: messagesLoading } = useQuery({
-    queryKey: ["tasting-messages", sessionId],
-    queryFn: async () => {
-      if (!sessionId) return [];
-      const { data, error } = await supabase
-        .from("tasting_messages")
-        .select("*, profiles(username, avatar_url)")
-        .eq("session_id", sessionId)
-        .order("created_at", { ascending: true });
-      if (error) throw error;
-      return data ?? [];
-    },
-    enabled: !!sessionId,
-  });
-
-  const sendMessage = useMutation({
-    mutationFn: async (text: string) => {
-      if (!user || !sessionId) throw new Error("Missing user or session");
-      const { error } = await supabase.from("tasting_messages").insert({
-        session_id: sessionId,
-        user_id: user.id,
-        message: text,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () =>
-      qc.invalidateQueries({ queryKey: ["tasting-messages", sessionId] }),
-  });
+  const { data: messages, isLoading: messagesLoading } =
+    useTastingMessages(sessionId);
+  const sendMessage = useSendTastingMessage(sessionId);
 
   /* ── Realtime ── */
   useEffect(() => {
@@ -134,23 +90,7 @@ const LiveTasting = () => {
   }, [sessionId, qc]);
 
   /* ── Tasting Note ── */
-  const saveTastingNote = useMutation({
-    mutationFn: async () => {
-      if (!user || !sessionId) throw new Error("Missing user or session");
-      const { error } = await supabase.from("tasting_notes").insert({
-        session_id: sessionId,
-        user_id: user.id,
-        aroma: tastingNote.aroma || null,
-        flavor: tastingNote.flavor || null,
-        mouthfeel: tastingNote.mouthfeel || null,
-        overall: tastingNote.overall || null,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      setTastingNote({ aroma: "", flavor: "", mouthfeel: "", overall: "" });
-    },
-  });
+  const saveTastingNote = useCreateTastingNote();
 
   function handleSend() {
     if (!input.trim()) return;
@@ -184,7 +124,7 @@ const LiveTasting = () => {
           No active tasting session.
         </p>
         <button
-          onClick={() => createSession.mutate()}
+          onClick={() => createSession.mutate("Live Tasting")}
           disabled={createSession.isPending}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-copper to-copper/80 text-copper-foreground font-medium text-sm shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-50"
         >
@@ -319,8 +259,28 @@ const LiveTasting = () => {
                 className="flex-1 h-9 px-3 rounded-lg bg-muted/50 border border-border/50 text-xs focus:outline-none focus:ring-2 focus:ring-gold/30 placeholder:text-muted-foreground"
               />
               <button
-                onClick={() => saveTastingNote.mutate()}
-                disabled={saveTastingNote.isPending}
+                onClick={() => {
+                  if (!sessionId) return;
+                  saveTastingNote.mutate(
+                    {
+                      sessionId,
+                      aroma: tastingNote.aroma,
+                      flavor: tastingNote.flavor,
+                      mouthfeel: tastingNote.mouthfeel,
+                      overall: tastingNote.overall,
+                    },
+                    {
+                      onSuccess: () =>
+                        setTastingNote({
+                          aroma: "",
+                          flavor: "",
+                          mouthfeel: "",
+                          overall: "",
+                        }),
+                    }
+                  );
+                }}
+                disabled={saveTastingNote.isPending || !sessionId}
                 className="px-4 h-9 rounded-lg bg-gold text-gold-foreground text-xs font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 Save Note

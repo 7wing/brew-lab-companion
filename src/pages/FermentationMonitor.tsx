@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -88,6 +89,9 @@ const FermentationMonitor = () => {
         onSuccess: () => {
           setDialogOpen(false);
           reset();
+        },
+        onError: (err: any) => {
+          toast.error(err?.message || "Failed to log reading");
         },
       }
     );
@@ -215,17 +219,24 @@ const FermentationMonitor = () => {
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
                   if (!file || !batchId) return;
-                  const url = await uploadPhoto(file, `${batchId}/${Date.now()}.jpg`);
-                  if (url) {
-                    createReading.mutate({
-                      batch_id: batchId,
-                      gravity: currentGravity,
-                      photo_url: url,
-                    }, {
-                      onSuccess: () => {
-                        qc.invalidateQueries({ queryKey: ['readings', batchId] });
-                      },
-                    });
+                  try {
+                    const url = await uploadPhoto(file, `${batchId}/${Date.now()}.jpg`);
+                    if (url) {
+                      createReading.mutate({
+                        batch_id: batchId,
+                        gravity: currentGravity,
+                        photo_url: url,
+                      }, {
+                        onSuccess: () => {
+                          qc.invalidateQueries({ queryKey: ['readings', batchId] });
+                        },
+                        onError: (err: any) => {
+                          toast.error(err?.message || "Failed to save reading");
+                        },
+                      });
+                    }
+                  } catch (err: any) {
+                    toast.error(err?.message || "Failed to upload photo");
                   }
                   e.target.value = '';
                 }}

@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "fermentId": "019eafa3-9798-74aa-a663-90725d9ab09e",
+  "phaseId": "phase-1",
+  "phaseName": "Fix Code Issues & Conventions",
+  "attempt": 1,
+  "timestamp": "2026-06-10T04:48:21.038Z",
+  "goal": "Fix all missing error handling, refactor direct Supabase calls in LiveTasting.tsx into hooks, remove dead code, and add Vite code splitting.",
+  "summary": "Phase 1 complete: wrapped all mutation handlers in try/catch or onError across 6 files (BatchDetail, Profile, FermentationMonitor, RecipeVault, BrewSetup, Challenges); created useTastingMessages.ts and added useLatestTastingSession/useCreateTastingSession to useTastingNotes.ts, fully refactored LiveTasting.tsx to use hooks instead of inline supabase calls; removed 836-line dead code file database.types.ts; added Vite manualChunks for code splitting into vendor-react, vendor-supabase, vendor-query, vendor-charts; verified zero TypeScript errors and successful production build.",
+  "stepSummaries": "  1. Wrap all 9 mutation handlers in try/catch or add onError handlers (BatchDetail.tsx x3, Profile.tsx x2, FermentationMonitor.tsx x1, RecipeVault.tsx x1, BrewSetup.tsx x1, Challenges.tsx x1) [verified]\n  2. Create useTastingMessages and useTastingNotes hooks, refactor LiveTasting.tsx to use them instead of inline supabase inserts [verified]\n  3. Remove unused src/lib/database.types.ts dead code [verified]\n  4. Add manual chunks to vite.config.ts for code splitting (vendor/react, supabase, charts) [verified]\n  5. Build verification: npm run build must pass [verified]",
+  "diffAvailable": true,
+  "diffFilesChanged": "src/hooks/useTastingNotes.ts      |  40 +-\n src/lib/database.types.ts         | 836 --------------------------------------\n src/pages/BatchDetail.tsx         |  99 +++--\n src/pages/BrewSetup.tsx           |  31 +-\n src/pages/Challenges.tsx          |  10 +-\n src/pages/FermentationMonitor.tsx |  33 +-\n src/pages/LiveTasting.tsx         | 124 ++----\n src/pages/Profile.tsx             |  55 ++-\n src/pages/RecipeVault.tsx         |   4 +\n vite.config.ts                    |  22 +\n 10 files changed, 250 insertions(+), 1004 deletions(-)",
+  "flags": [],
+  "derivedGrade": "A",
+  "reviewerRationale": "All gates pass; project checks validate.",
+  "gateVerdicts": [
+    {
+      "id": "F1",
+      "verdict": "pass",
+      "rationale": "Step 5 ran npm run build as a real smoke test (not proxy). Steps 1-4 were verified with grep/file checks (proxies) but Step 5's build actually compiled all changes. The combined verification chain includes at least one real execution.",
+      "evidence": "Build output: '✓ built in 11.02s' with 6 chunks. No circular chunk warnings. tsc --noEmit: zero errors."
+    },
+    {
+      "id": "F2",
+      "verdict": "pass",
+      "rationale": "Phase goal was 'Fix Code Issues & Conventions'. All 5 steps delivered: error handling on mutations, LiveTasting refactored to hooks, dead code removed, code splitting configured, build passes.",
+      "evidence": "BatchDetail.tsx/Profile.tsx/FermentationMonitor.tsx/RecipeVault.tsx/BrewSetup.tsx/Challenges.tsx all have try/catch or onError. LiveTasting.tsx imports useTastingMessages/useLatestTastingSession/useCreateTastingSession/useCreateTastingNote. database.types.ts removed. vite.config.ts has manualChunks."
+    },
+    {
+      "id": "F3",
+      "verdict": "pass",
+      "rationale": "Nothing deferred. All planned work in the 5 steps was completed and verified.",
+      "evidence": "n/a"
+    }
+  ],
+  "projectChecks": {
+    "discovered": true,
+    "anyFailed": false,
+    "commands": [
+      {
+        "kind": "test",
+        "command": "npm test",
+        "exitCode": 0,
+        "durationMs": 0,
+        "timedOut": false
+      },
+      {
+        "kind": "lint",
+        "command": "npm run lint",
+        "exitCode": 0,
+        "durationMs": 0,
+        "timedOut": false
+      }
+    ]
+  }
+}

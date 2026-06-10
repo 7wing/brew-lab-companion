@@ -1,4 +1,5 @@
 import { FlaskConical, Award, Users, Beaker, ChevronDown, ChevronUp, Loader2, Camera, Plus, Trash2, Pencil } from "lucide-react";
+import { toast } from "sonner";
 import { useState } from "react";
 import {
   Dialog,
@@ -69,32 +70,44 @@ const Profile = () => {
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !profile) return;
-    const url = await uploadAvatar(file, `${profile.id}/avatar.jpg`);
-    if (url) {
-      await updateProfile.mutateAsync({ avatar_url: url });
+    try {
+      const url = await uploadAvatar(file, `${profile.id}/avatar.jpg`);
+      if (url) {
+        await updateProfile.mutateAsync({ avatar_url: url });
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update avatar");
     }
     e.target.value = "";
   }
 
   async function handleSaveProfile() {
-    await updateProfile.mutateAsync({
-      display_name: editDisplayName || null,
-      bio: editBio || null,
-      location: editLocation || null,
-    });
-    setEditOpen(false);
+    try {
+      await updateProfile.mutateAsync({
+        display_name: editDisplayName || null,
+        bio: editBio || null,
+        location: editLocation || null,
+      });
+      setEditOpen(false);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to save profile");
+    }
   }
 
   async function handleAddYeast() {
-    await addYeast.mutateAsync({
-      name: yeastName,
-      strain_code: yeastCode || null,
-      notes: yeastNotes || null,
-    });
-    setNewYeastOpen(false);
-    setYeastName("");
-    setYeastCode("");
-    setYeastNotes("");
+    try {
+      await addYeast.mutateAsync({
+        name: yeastName,
+        strain_code: yeastCode || null,
+        notes: yeastNotes || null,
+      });
+      setNewYeastOpen(false);
+      setYeastName("");
+      setYeastCode("");
+      setYeastNotes("");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to add yeast strain");
+    }
   }
 
   if (profileLoading) {
@@ -221,7 +234,11 @@ const Profile = () => {
                     {y.strain_code && <p className="text-[10px] text-muted-foreground">{y.strain_code}</p>}
                   </div>
                   <button
-                    onClick={() => deleteYeast.mutate(y.id)}
+                    onClick={() => {
+                      deleteYeast.mutate(y.id, {
+                        onError: (err: any) => toast.error(err?.message || "Failed to delete strain"),
+                      });
+                    }}
                     className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
                   >
                     <Trash2 size={14} />

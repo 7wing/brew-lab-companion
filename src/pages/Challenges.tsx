@@ -1,4 +1,5 @@
 import { Trophy, Clock, Users, ChevronRight, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { useChallenges, useJoinChallenge } from "@/hooks/useChallenges";
 
 const typeColor: Record<string, string> = {
@@ -124,7 +125,14 @@ const Challenges = () => {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      joinChallenge.mutate({ challengeId: c.id });
+                      joinChallenge.mutate(
+                        { challengeId: c.id },
+                        {
+                          onError: (err: any) => {
+                            toast.error(err?.message || "Failed to join challenge");
+                          },
+                        }
+                      );
                     }}
                     disabled={joinChallenge.isPending}
                     className="mt-4 w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-all disabled:opacity-50"

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import {
   FlaskConical,
   BookOpen,
@@ -71,20 +72,24 @@ const BrewSetup = () => {
         ? 14
         : parseInt(recipe.time.split(" ")[0], 10) || 14;
 
-    const data = await createBatch.mutateAsync({
-      name: recipe.name,
-      type: recipe.type as any,
-      start_date: new Date().toISOString().split("T")[0],
-      target_days: targetDays,
-      target_temp_f: parseFloat(targetTemp) || 66,
-      fermenter: fermenters[selectedFermenter].name,
-      notes: notes || null,
-      og: 1.05,
-      target_fg: 1.01,
-    });
+    try {
+      const data = await createBatch.mutateAsync({
+        name: recipe.name,
+        type: recipe.type as any,
+        start_date: new Date().toISOString().split("T")[0],
+        target_days: targetDays,
+        target_temp_f: parseFloat(targetTemp) || 66,
+        fermenter: fermenters[selectedFermenter].name,
+        notes: notes || null,
+        og: 1.05,
+        target_fg: 1.01,
+      });
 
-    if (data?.id) {
-      navigate(`/batch/${data.id}`);
+      if (data?.id) {
+        navigate(`/batch/${data.id}`);
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to start batch");
     }
   };
 
