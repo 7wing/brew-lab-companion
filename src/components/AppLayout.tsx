@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   FlaskConical,
   LayoutDashboard,
@@ -17,6 +17,10 @@ import {
 } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import BubbleBackground from "./BubbleBackground";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/lib/supabase";
+import { useQueryClient } from "@tanstack/react-query";
 
 const navItems = [
   { path: "/", label: "Brew Bench", icon: LayoutDashboard },
@@ -31,7 +35,44 @@ const navItems = [
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const { user } = useAuth();
+  const qc = useQueryClient();
+
+  const { data: notifications } = useNotifications();
+  const unreadCount = notifications?.length ?? 0;
+
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel("notifications")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          qc.invalidateQueries({ queryKey: ["notifications"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, qc]);
+
+  function handleSearch(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" && searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      setSearchQuery("");
+    }
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -64,6 +105,9 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
               <input
                 type="search"
                 placeholder="Search recipes, batches, brewers..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearch}
                 className="w-full h-9 pl-9 pr-4 rounded-lg bg-muted/50 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-copper/30 transition-all placeholder:text-muted-foreground"
               />
             </div>
@@ -71,9 +115,20 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
 
           <div className="flex items-center gap-3">
             <ThemeToggle />
+            <Link
+              to="/search"
+              className="md:hidden p-2 rounded-lg hover:bg-muted transition-colors"
+              aria-label="Search"
+            >
+              <Search size={18} />
+            </Link>
             <button className="relative p-2 rounded-lg hover:bg-muted transition-colors" aria-label="Notifications">
               <Bell size={18} />
-              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-teal animate-pulse" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 min-w-[1rem] h-4 px-1 rounded-full bg-teal text-teal-foreground text-[10px] font-bold flex items-center justify-center">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
             </button>
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-copper/20 to-teal/20 border border-border flex items-center justify-center">
               <FlaskConical size={14} className="text-copper" />
@@ -160,7 +215,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-colors ${
+                className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg transition-colors min-h-[44px] min-w-[44px] justify-center ${
                   active ? "text-primary" : "text-muted-foreground"
                 }`}
               >

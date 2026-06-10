@@ -9,7 +9,9 @@ import {
   ArrowLeft,
   ArrowRight,
   Check,
+  Loader2,
 } from "lucide-react";
+import { useCreateBatch } from "@/hooks/useBatches";
 
 const steps = [
   { label: "Recipe", icon: BookOpen },
@@ -23,7 +25,7 @@ const recipes = [
   { id: 2, name: "Ginger Kombucha", type: "kombucha", time: "14 days" },
   { id: 3, name: "Orange Blossom Mead", type: "mead", time: "90 days" },
   { id: 4, name: "Dry Farmhouse Cider", type: "cider", time: "28 days" },
-  { id: 5, name: "Custom Recipe", type: "custom", time: "Variable" },
+  { id: 5, name: "Custom Recipe", type: "ferment", time: "Variable" },
 ];
 
 const ingredients = [
@@ -46,7 +48,11 @@ const BrewSetup = () => {
   const [step, setStep] = useState(0);
   const [selectedRecipe, setSelectedRecipe] = useState<number | null>(null);
   const [selectedFermenter, setSelectedFermenter] = useState<number | null>(null);
+  const [targetTemp, setTargetTemp] = useState<string>("66");
+  const [notes, setNotes] = useState("");
   const navigate = useNavigate();
+
+  const createBatch = useCreateBatch();
 
   const fillPercent = ((step + 1) / steps.length) * 100;
 
@@ -56,8 +62,30 @@ const BrewSetup = () => {
     (step === 2 && selectedFermenter !== null) ||
     step === 3;
 
-  const handleStart = () => {
-    navigate("/");
+  const handleStart = async () => {
+    const recipe = recipes.find((r) => r.id === selectedRecipe);
+    if (!recipe || selectedFermenter == null) return;
+
+    const targetDays =
+      recipe.time === "Variable"
+        ? 14
+        : parseInt(recipe.time.split(" ")[0], 10) || 14;
+
+    const data = await createBatch.mutateAsync({
+      name: recipe.name,
+      type: recipe.type as any,
+      start_date: new Date().toISOString().split("T")[0],
+      target_days: targetDays,
+      target_temp_f: parseFloat(targetTemp) || 66,
+      fermenter: fermenters[selectedFermenter].name,
+      notes: notes || null,
+      og: 1.05,
+      target_fg: 1.01,
+    });
+
+    if (data?.id) {
+      navigate(`/batch/${data.id}`);
+    }
   };
 
   return (
@@ -200,7 +228,8 @@ const BrewSetup = () => {
                 <label className="text-xs font-medium text-muted-foreground block mb-1">Target Temperature (°F)</label>
                 <input
                   type="number"
-                  defaultValue={66}
+                  value={targetTemp}
+                  onChange={(e) => setTargetTemp(e.target.value)}
                   className="w-full h-10 px-3 rounded-lg bg-muted/50 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-copper/30"
                 />
               </div>
@@ -209,6 +238,8 @@ const BrewSetup = () => {
                 <textarea
                   rows={2}
                   placeholder="Any setup notes..."
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
                   className="w-full px-3 py-2 rounded-lg bg-muted/50 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-copper/30 resize-none"
                 />
               </div>
@@ -227,9 +258,14 @@ const BrewSetup = () => {
             </p>
             <button
               onClick={handleStart}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-copper to-copper/80 text-copper-foreground font-medium shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
+              disabled={createBatch.isPending}
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-copper to-copper/80 text-copper-foreground font-medium shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Play size={18} />
+              {createBatch.isPending ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <Play size={18} />
+              )}
               Start Fermentation
             </button>
           </div>

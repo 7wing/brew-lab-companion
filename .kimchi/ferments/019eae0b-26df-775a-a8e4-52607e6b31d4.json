@@ -1,0 +1,794 @@
+{
+  "id": "019eae0b-26df-775a-a8e4-52607e6b31d4",
+  "name": "Full Supabase Backend",
+  "description": "/ferment 'Act as a senior pair programmer. I have an existing, mostly configured project. I am providing two reference documents that dictate how this project should grow: AGENTS.md (the blueprint for agent logic and roles) and PRODUCTION_GUIDE.md (the coding standards and tech stack rules). Your rules: Never alter my existing project configuration unless explicitly asked. Every piece of code you suggest must strictly align with the patterns in PRODUCTION_GUIDE.md. All feature additions must respect the architecture in AGENTS.md.'",
+  "status": "complete",
+  "worktree": {
+    "path": "/workspaces/brew-lab-companion",
+    "branch": "main",
+    "commit": "be3a630eb12c721317feb10686d0b551a03eb40e"
+  },
+  "scoping": {
+    "goal": {
+      "answer": "Wire the entire Homebrew Haven frontend prototype to a real Supabase backend by implementing all 4 phases from AGENTS.md: auth + typed client, core batch/reading data, recipes + community, then uploads/realtime/notifications/search. Deliver a complete SUPABASE_STEPS.md handoff document so the user can create tables/RLS in the Supabase dashboard before testing.",
+      "confirmedAt": "2026-06-09T20:32:47.306Z"
+    },
+    "criteria": {
+      "answer": "Auth works: user can sign up, log in, and reach the app. Unauthenticated users redirect to /auth.\nCore Data works: can create a batch via the New Brew wizard, log readings from Fermentation Monitor, and see the gravity chart update with real data.\nRecipes & Community works: full CRUD on recipes (create, search, filter, star, delete), like/comment on community posts, and join challenges.\nUploads & Realtime works: photo uploads in Fermentation Monitor and Batch Detail, live tasting chat updates in real time, notification bell shows unread count with realtime subscriptions.\nBuild passes and vercel.json exists for SPA routing.",
+      "confirmedAt": "2026-06-09T20:32:47.306Z"
+    },
+    "constraints": {
+      "answer": "Never alter existing project configuration (vite.config.ts, tailwind.config.ts, tsconfig.json) unless explicitly required and noted., All server state must use TanStack Query v5. All forms must use React Hook Form + Zod., Never call Supabase directly inside JSX render — always go through hooks., Do not expose SUPABASE_SERVICE_ROLE_KEY to the frontend., Do not use localStorage/sessionStorage for auth state., Do not modify .env.local or commit secrets., Do not skip npm run build verification at the end of each phase.",
+      "confirmedAt": "2026-06-09T20:32:47.306Z"
+    },
+    "phases": {
+      "answer": "Phase 1 — Foundation, Phase 2 — Core Data (Batches + Readings), Phase 3 — Recipes + Community, Phase 4 — Uploads, Realtime, Notifications, Search, Mobile Polish",
+      "confirmedAt": "2026-06-09T20:32:47.306Z"
+    },
+    "assumptions": {
+      "answer": "The Supabase project exists and .env.local credentials are valid.; The human will execute SUPABASE_STEPS.md SQL in the Supabase SQL Editor before running the app.; TypeScript database types will be regenerated after schema creation; a minimal placeholder is acceptable until then.; @supabase/supabase-js, @supabase/auth-ui-react, and browser-image-compression are not yet installed and must be added.; The frontend prototype structure (pages, components, routes) will remain largely intact; only data sourcing and interactivity change.",
+      "confirmedAt": "2026-06-09T20:32:47.306Z"
+    }
+  },
+  "phases": [
+    {
+      "id": "phase-1",
+      "index": 1,
+      "name": "Phase 1 — Foundation",
+      "goal": "Install Supabase, create the human handoff SQL document, typed client, auth hooks, auth UI, route protection, and pass build.",
+      "description": "",
+      "budget": "300k tokens",
+      "parallel": false,
+      "status": "completed",
+      "steps": [
+        {
+          "id": "step-1",
+          "index": 1,
+          "description": "Create SUPABASE_STEPS.md containing full schema SQL, RLS policies, Postgres RPC/trigger functions, storage bucket instructions, type generation command, and a human checklist.",
+          "status": "verified",
+          "verification": {
+            "command": "test -f SUPABASE_STEPS.md",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T20:33:03.849Z",
+          "completedAt": "2026-06-09T20:39:36.943Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T20:39:36.943Z"
+          }
+        },
+        {
+          "id": "step-2",
+          "index": 2,
+          "description": "Install @supabase/supabase-js, @supabase/auth-ui-react, and browser-image-compression.",
+          "status": "verified",
+          "verification": {
+            "command": "grep -q '@supabase/supabase-js' package.json && grep -q 'browser-image-compression' package.json",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T20:40:09.196Z",
+          "completedAt": "2026-06-09T20:43:45.959Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T20:43:45.959Z"
+          }
+        },
+        {
+          "id": "step-3",
+          "index": 3,
+          "description": "Create src/lib/supabase.ts with createClient<Database> using VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.",
+          "status": "verified",
+          "verification": {
+            "command": "test -f src/lib/supabase.ts",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T20:44:02.383Z",
+          "completedAt": "2026-06-09T20:50:49.704Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T20:50:49.704Z"
+          }
+        },
+        {
+          "id": "step-4",
+          "index": 4,
+          "description": "Create src/types/database.ts with a minimal Database interface covering all tables as placeholders, plus a TODO comment with the full type-generation CLI command.",
+          "status": "verified",
+          "verification": {
+            "command": "test -f src/types/database.ts",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T20:51:20.757Z",
+          "completedAt": "2026-06-09T20:51:35.451Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T20:51:35.451Z"
+          }
+        },
+        {
+          "id": "step-5",
+          "index": 5,
+          "description": "Create src/contexts/AuthContext.tsx that listens to supabase.auth.onAuthStateChange and exposes session, user, loading, signOut.",
+          "status": "verified",
+          "verification": {
+            "command": "test -f src/contexts/AuthContext.tsx",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T20:52:05.114Z",
+          "completedAt": "2026-06-09T20:53:13.172Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T20:53:13.172Z"
+          }
+        },
+        {
+          "id": "step-6",
+          "index": 6,
+          "description": "Create src/lib/auth.ts with signUp (auto-inserts profiles row), signIn, signOut, signInWithGoogle, signInWithGitHub.",
+          "status": "verified",
+          "verification": {
+            "command": "test -f src/lib/auth.ts",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T20:54:19.164Z",
+          "completedAt": "2026-06-09T20:55:25.863Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T20:55:25.863Z"
+          }
+        },
+        {
+          "id": "step-7",
+          "index": 7,
+          "description": "Create src/pages/Auth.tsx using @supabase/auth-ui-react with Google + GitHub OAuth, styled with existing Tailwind/shadcn tokens.",
+          "status": "verified",
+          "verification": {
+            "command": "test -f src/pages/Auth.tsx",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T20:56:17.811Z",
+          "completedAt": "2026-06-09T20:57:25.998Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T20:57:25.998Z"
+          }
+        },
+        {
+          "id": "step-8",
+          "index": 8,
+          "description": "Create src/components/ProtectedRoute.tsx that redirects to /auth if not logged in and shows a loading state while auth initializes.",
+          "status": "verified",
+          "verification": {
+            "command": "test -f src/components/ProtectedRoute.tsx",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T20:57:36.258Z",
+          "completedAt": "2026-06-09T20:58:01.904Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T20:58:01.904Z"
+          }
+        },
+        {
+          "id": "step-9",
+          "index": 9,
+          "description": "Modify src/App.tsx to wrap with AuthProvider, add /auth route, and wrap all other routes with ProtectedRoute.",
+          "status": "verified",
+          "verification": {
+            "command": "grep -q 'ProtectedRoute' src/App.tsx && grep -q 'AuthProvider' src/App.tsx",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T20:58:11.139Z",
+          "completedAt": "2026-06-09T21:00:00.660Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T21:00:00.660Z"
+          }
+        },
+        {
+          "id": "step-10",
+          "index": 10,
+          "description": "Run npm run build to verify no TypeScript or build errors after foundation changes.",
+          "status": "verified",
+          "verification": {
+            "command": "npm run build",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T21:00:12.969Z",
+          "completedAt": "2026-06-09T21:00:57.622Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T21:00:57.622Z"
+          }
+        }
+      ],
+      "startedAt": "2026-06-09T20:32:53.483Z",
+      "completedAt": "2026-06-09T21:01:16.500Z",
+      "summary": "Phase 1 — Foundation complete. All 10 steps finished:\n1. SUPABASE_STEPS.md created with full schema, RLS, triggers, storage, and checklist.\n2. Installed @supabase/supabase-js, @supabase/auth-ui-react, browser-image-compression.\n3-4. Created typed client src/lib/supabase.ts and placeholder src/types/database.ts.\n5-6. Created AuthContext.tsx and auth.ts helpers.\n7-9. Created Auth page, ProtectedRoute, and wired routing in App.tsx.\n10. Build verified successfully.\n"
+    },
+    {
+      "id": "phase-2",
+      "index": 2,
+      "name": "Phase 2 — Core Data (Batches + Readings)",
+      "goal": "Replace mock batch and readings data with live Supabase queries, wire Index, BrewSetup, FermentationMonitor, and GravityCurve.",
+      "description": "",
+      "budget": "300k tokens",
+      "parallel": false,
+      "status": "completed",
+      "steps": [
+        {
+          "id": "step-1",
+          "index": 1,
+          "description": "Create src/hooks/useBatches.ts with useBatches, useCreateBatch, useUpdateBatch, and useBatch(id).",
+          "status": "verified",
+          "verification": {
+            "command": "test -f src/hooks/useBatches.ts",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T21:01:37.211Z",
+          "completedAt": "2026-06-09T21:02:48.329Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T21:02:48.329Z"
+          }
+        },
+        {
+          "id": "step-2",
+          "index": 2,
+          "description": "Create src/hooks/useReadings.ts with useReadings(batchId) and useCreateReading().",
+          "status": "verified",
+          "verification": {
+            "command": "test -f src/hooks/useReadings.ts",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T21:03:00.977Z",
+          "completedAt": "2026-06-09T21:03:52.257Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T21:03:52.257Z"
+          }
+        },
+        {
+          "id": "step-3",
+          "index": 3,
+          "description": "Modify src/pages/Index.tsx to use useBatches(), show loading skeleton and empty state, and compute next-action badges from batch_stages.",
+          "status": "verified",
+          "verification": {
+            "command": "grep -q 'useBatches' src/pages/Index.tsx",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T21:04:29.927Z",
+          "completedAt": "2026-06-09T21:09:56.263Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T21:09:56.263Z"
+          }
+        },
+        {
+          "id": "step-4",
+          "index": 4,
+          "description": "Modify src/pages/BrewSetup.tsx to wire the wizard final step to useCreateBatch() and navigate to /batch/:newId on success.",
+          "status": "verified",
+          "verification": {
+            "command": "grep -q 'useCreateBatch' src/pages/BrewSetup.tsx",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T21:12:56.933Z",
+          "completedAt": "2026-06-09T21:13:42.237Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T21:13:42.237Z"
+          }
+        },
+        {
+          "id": "step-5",
+          "index": 5,
+          "description": "Modify src/pages/FermentationMonitor.tsx to use useReadings(batchId) and wire Log Reading to a Dialog form calling useCreateReading().",
+          "status": "verified",
+          "verification": {
+            "command": "grep -q 'useReadings' src/pages/FermentationMonitor.tsx",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T21:13:51.860Z",
+          "completedAt": "2026-06-09T21:19:38.679Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T21:19:38.679Z"
+          }
+        },
+        {
+          "id": "step-6",
+          "index": 6,
+          "description": "Modify src/components/GravityCurve.tsx to accept real readings via props instead of a static data array.",
+          "status": "verified",
+          "verification": {
+            "command": "npm run build",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T21:19:50.827Z",
+          "completedAt": "2026-06-09T21:26:20.140Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T21:26:20.140Z"
+          }
+        }
+      ],
+      "startedAt": "2026-06-09T21:01:24.225Z",
+      "completedAt": "2026-06-09T21:27:19.935Z",
+      "summary": "Phase 2 — Core Data (Batches + Readings) complete.\n1. useBatches.ts and useReadings.ts hooks created with full CRUD and query invalidation.\n2. Index.tsx replaced mock batches with live data, added skeleton/empty states, next-action badges from batch_stages, and dynamic upcoming milestones.\n3. BrewSetup.tsx wired the Start Fermentation button to useCreateBatch mutation and auto-navigates to the new batch.\n4. FermentationMonitor.tsx loads real readings for the selected batch, computes live stats, and opens a Dialog form (RHF + Zod) wired to useCreateReading.\n5. GravityCurve.tsx refactored to accept readings prop, render dynamically, and show empty state when no data.\n6. Build verified successfully."
+    },
+    {
+      "id": "phase-3",
+      "index": 3,
+      "name": "Phase 3 — Recipes + Community",
+      "goal": "Wire recipe vault, community feed, and challenges to real Supabase data with full-text search, likes, comments, and challenge entries.",
+      "description": "",
+      "budget": "300k tokens",
+      "parallel": false,
+      "status": "completed",
+      "steps": [
+        {
+          "id": "step-1",
+          "index": 1,
+          "description": "Create src/hooks/useRecipes.ts with useRecipes(filter?, search?), useCreateRecipe, useUpdateRecipe, and useDeleteRecipe.",
+          "status": "verified",
+          "verification": {
+            "command": "test -f src/hooks/useRecipes.ts",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T21:27:49.420Z",
+          "completedAt": "2026-06-09T21:29:10.583Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T21:29:10.583Z"
+          }
+        },
+        {
+          "id": "step-2",
+          "index": 2,
+          "description": "Create src/hooks/usePosts.ts with usePosts, useCreatePost, useToggleLike(postId), useComments(postId), and useAddComment.",
+          "status": "verified",
+          "verification": {
+            "command": "test -f src/hooks/usePosts.ts",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T21:29:22.712Z",
+          "completedAt": "2026-06-09T21:31:15.586Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T21:31:15.586Z"
+          }
+        },
+        {
+          "id": "step-3",
+          "index": 3,
+          "description": "Modify src/pages/RecipeVault.tsx to use useRecipes(), wire search to full-text search, filter tabs, New Recipe dialog, and star toggle.",
+          "status": "verified",
+          "verification": {
+            "command": "grep -q 'useRecipes' src/pages/RecipeVault.tsx",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T21:31:41.857Z",
+          "completedAt": "2026-06-09T21:34:53.747Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T21:34:53.747Z"
+          }
+        },
+        {
+          "id": "step-4",
+          "index": 4,
+          "description": "Modify src/pages/Community.tsx to use usePosts(), wire like button to useToggleLike, comments to useComments/useAddComment, and share to navigator.share.",
+          "status": "verified",
+          "verification": {
+            "command": "grep -q 'usePosts' src/pages/Community.tsx",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T21:35:06.705Z",
+          "completedAt": "2026-06-09T21:37:17.488Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T21:37:17.488Z"
+          }
+        },
+        {
+          "id": "step-5",
+          "index": 5,
+          "description": "Modify src/pages/Challenges.tsx to fetch challenges and challenge_entries, wire Join button, and show participant counts.",
+          "status": "verified",
+          "verification": {
+            "command": "grep -q 'challenges' src/pages/Challenges.tsx",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T21:37:31.608Z",
+          "completedAt": "2026-06-09T21:45:35.878Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T21:45:35.878Z"
+          }
+        },
+        {
+          "id": "step-6",
+          "index": 6,
+          "description": "Run npm run build to verify no compile errors after Phase 3 changes.",
+          "status": "verified",
+          "verification": {
+            "command": "npm run build",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T21:45:58.691Z",
+          "completedAt": "2026-06-09T21:46:49.776Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T21:46:49.776Z"
+          }
+        }
+      ],
+      "startedAt": "2026-06-09T21:27:39.353Z",
+      "completedAt": "2026-06-09T21:47:18.340Z",
+      "summary": "Phase 3 — Recipes + Community complete.\n1. useRecipes.ts created with full-text search, filtering, create/update/delete.\n2. usePosts.ts created with posts, likes (RPC), comments, add comment.\n3. RecipeVault.tsx wired: real recipes, search, filter tabs, New Recipe Dialog (RHF+Zod), star toggle.\n4. Community.tsx wired: real posts by category, likes, share (navigator.share + clipboard fallback), expandable comment overlay (fetch + add comments).\n5. Challenges.tsx wired: dynamic challenges with computed progress/daysLeft/participant count, Join Challenge button.\n6. Build verified successfully."
+    },
+    {
+      "id": "phase-4",
+      "index": 4,
+      "name": "Phase 4 — Uploads, Realtime, Notifications, Search, Mobile Polish",
+      "goal": "Add file uploads, live chat, real-time notifications, profile wiring, search page, mobile fixes, and final build verification.",
+      "description": "",
+      "budget": "350k tokens",
+      "parallel": false,
+      "status": "completed",
+      "steps": [
+        {
+          "id": "step-1",
+          "index": 1,
+          "description": "Create src/hooks/useUpload.ts wrapping Supabase Storage with image compression (max 1MB, 1920px) and returning public URL.",
+          "status": "verified",
+          "verification": {
+            "command": "test -f src/hooks/useUpload.ts",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T21:47:45.721Z",
+          "completedAt": "2026-06-09T21:49:52.316Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T21:49:52.316Z"
+          }
+        },
+        {
+          "id": "step-2",
+          "index": 2,
+          "description": "Modify src/pages/FermentationMonitor.tsx to replace camera placeholder with real file input using useUpload('batch-photos') and save URL to reading record.",
+          "status": "verified",
+          "verification": {
+            "command": "grep -q 'useUpload' src/pages/FermentationMonitor.tsx",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T21:50:52.648Z",
+          "completedAt": "2026-06-09T22:00:17.089Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T22:00:17.089Z"
+          }
+        },
+        {
+          "id": "step-3",
+          "index": 3,
+          "description": "Modify src/pages/BatchDetail.tsx to wire all 4 Quick Action buttons: Add Reading, Upload Photo, Tasting Note, and Share to Community.",
+          "status": "verified",
+          "verification": {
+            "command": "grep -q 'useUpload' src/pages/BatchDetail.tsx",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T22:00:49.628Z",
+          "completedAt": "2026-06-09T22:05:19.386Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T22:05:19.386Z"
+          }
+        },
+        {
+          "id": "step-4",
+          "index": 4,
+          "description": "Modify src/pages/Profile.tsx to fetch real profile data, wire avatar upload via useUpload('avatars'), Edit Profile dialog, and Yeast Bank accordion.",
+          "status": "verified",
+          "verification": {
+            "command": "grep -q 'useUpload\\|useProfile' src/pages/Profile.tsx",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T22:05:50.532Z",
+          "completedAt": "2026-06-09T22:09:49.387Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T22:09:49.387Z"
+          }
+        },
+        {
+          "id": "step-5",
+          "index": 5,
+          "description": "Modify src/pages/LiveTasting.tsx to fetch tasting_messages joined with profiles, subscribe to Supabase Realtime, and clean up channel on unmount.",
+          "status": "verified",
+          "verification": {
+            "command": "grep -q 'removeChannel' src/pages/LiveTasting.tsx",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T22:10:05.616Z",
+          "completedAt": "2026-06-09T22:17:38.545Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T22:17:38.545Z"
+          }
+        },
+        {
+          "id": "step-6",
+          "index": 6,
+          "description": "Modify src/components/AppLayout.tsx to query unread notifications, add Realtime subscription for new notifications, and wire header search to navigate to /search?q=....",
+          "status": "verified",
+          "verification": {
+            "command": "grep -q 'notifications' src/components/AppLayout.tsx",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T22:18:14.479Z",
+          "completedAt": "2026-06-09T22:23:26.235Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T22:23:26.235Z"
+          }
+        },
+        {
+          "id": "step-7",
+          "index": 7,
+          "description": "Create src/pages/Search.tsx that reads q param and runs full-text search across recipes and posts.",
+          "status": "verified",
+          "verification": {
+            "command": "test -f src/pages/Search.tsx",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T22:24:01.478Z",
+          "completedAt": "2026-06-09T22:26:57.454Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T22:26:57.454Z"
+          }
+        },
+        {
+          "id": "step-8",
+          "index": 8,
+          "description": "Apply mobile checklist: full-width dialogs, iOS camera capture, bottom-nav tap targets, collapsible chat drawer, recipe filter sheet.",
+          "status": "verified",
+          "verification": {
+            "command": "npm run build",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T22:27:22.302Z",
+          "completedAt": "2026-06-09T22:31:05.949Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T22:31:05.949Z"
+          }
+        },
+        {
+          "id": "step-9",
+          "index": 9,
+          "description": "Create vercel.json with SPA rewrite rule.",
+          "status": "verified",
+          "verification": {
+            "command": "test -f vercel.json",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T22:31:27.754Z",
+          "completedAt": "2026-06-09T22:32:35.440Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T22:32:35.440Z"
+          }
+        },
+        {
+          "id": "step-10",
+          "index": 10,
+          "description": "Run npm run build for final verification that the entire app compiles cleanly.",
+          "status": "verified",
+          "verification": {
+            "command": "npm run build",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T22:32:54.957Z",
+          "completedAt": "2026-06-09T22:34:04.899Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T22:34:04.899Z"
+          }
+        }
+      ],
+      "startedAt": "2026-06-09T21:47:31.386Z",
+      "completedAt": "2026-06-09T22:34:40.062Z",
+      "summary": "Phase 4 — Uploads, Realtime, Notifications, Search, Mobile Polish complete.\n1. useUpload.ts created for image compression + Supabase Storage uploads.\n2. FermentationMonitor.tsx wired for photo uploads with useUpload('batch-photos').\n3. BatchDetail.tsx wired all 4 Quick Actions: Add Reading, Upload Photo, Tasting Note, Share to Community.\n4. Profile.tsx wired with real profile data, avatar upload, Edit Profile dialog, and Yeast Bank CRUD.\n5. LiveTasting.tsx wired with Supabase Realtime for live chat and tasting notes.\n6. AppLayout.tsx wired with notifications query, realtime subscription, and header search navigation.\n7. Search.tsx created for full-text search across recipes and posts.\n8. Mobile checklist applied: recipe filter Sheet, bottom nav tap targets, dialog widths.\n9. vercel.json created for SPA routing.\n10. Final build verified successfully."
+    }
+  ],
+  "decisions": [],
+  "memories": [],
+  "createdAt": "2026-06-09T20:20:26.975Z",
+  "updatedAt": "2026-06-09T22:36:26.371Z",
+  "goal": "Wire the entire Homebrew Haven frontend prototype to a real Supabase backend by implementing all 4 phases from AGENTS.md: auth + typed client, core batch/reading data, recipes + community, then uploads/realtime/notifications/search. Deliver a complete SUPABASE_STEPS.md handoff document so the user can create tables/RLS in the Supabase dashboard before testing.",
+  "successCriteria": [
+    "Auth works: user can sign up, log in, and reach the app. Unauthenticated users redirect to /auth.",
+    "Core Data works: can create a batch via the New Brew wizard, log readings from Fermentation Monitor, and see the gravity chart update with real data.",
+    "Recipes & Community works: full CRUD on recipes (create, search, filter, star, delete), like/comment on community posts, and join challenges.",
+    "Uploads & Realtime works: photo uploads in Fermentation Monitor and Batch Detail, live tasting chat updates in real time, notification bell shows unread count with realtime subscriptions.",
+    "Build passes and vercel.json exists for SPA routing."
+  ],
+  "constraints": [
+    "Never alter existing project configuration (vite.config.ts, tailwind.config.ts, tsconfig.json) unless explicitly required and noted.",
+    "All server state must use TanStack Query v5. All forms must use React Hook Form + Zod.",
+    "Never call Supabase directly inside JSX render — always go through hooks.",
+    "Do not expose SUPABASE_SERVICE_ROLE_KEY to the frontend.",
+    "Do not use localStorage/sessionStorage for auth state.",
+    "Do not modify .env.local or commit secrets.",
+    "Do not skip npm run build verification at the end of each phase."
+  ],
+  "lastActiveAt": "2026-06-09T21:47:31.386Z",
+  "grade": {
+    "grade": "B",
+    "rationale": "All four phases relied primarily on proxy verifications (file existence/grep) with only a terminal `npm run build` syntactic smoke test; the agent explicitly conceded in Phase 2 and Phase 4 F1 verdicts that true end-to-end Supabase verification requires prior human SQL execution, so no auth flow, upload, or realtime subscription was actually runtime-exercised. The diff is comprehensive and the gate rationales cite specific files, but the verification remains weakly proxy/sentinel rather than concrete execution.",
+    "gradedAt": "2026-06-09T22:36:26.369Z"
+  }
+}

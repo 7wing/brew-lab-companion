@@ -1,0 +1,223 @@
+{
+  "id": "019eae9c-92ef-7768-b059-c87a3daa1d5b",
+  "name": "Auth Callback & Deep Links",
+  "description": "the auth links begin sent to my email box. when i click them i am redirected to a url with my access token. then it does not load. why don't we create a way i am redirected to the intial link because now the authentication is not in sync",
+  "status": "complete",
+  "worktree": {
+    "path": "/workspaces/brew-lab-companion",
+    "branch": "main",
+    "commit": "be3a630eb12c721317feb10686d0b551a03eb40e"
+  },
+  "scoping": {
+    "goal": {
+      "answer": "Implement a production-grade auth callback redirect flow that fixes the broken email-link auth sync. Handle PKCE code exchange, preserve deep links across login, support all auth methods (magic link, password reset, email confirmation, OAuth), and surface clear loading/error states on the callback page. Update the handoff doc so the Supabase dashboard is configured correctly for the callback URL.",
+      "confirmedAt": "2026-06-09T23:25:04.636Z"
+    },
+    "criteria": {
+      "answer": "Auth email links redirect to /auth/callback, exchange the PKCE code, establish the session, then redirect back to the originally requested page (e.g. /batch/123).\nProtected routes transparently save the current path before redirecting to /auth, so users never lose their place after login.\nOAuth (Google/GitHub) uses /auth/callback as the exact redirect URI.\nAuthCallback page shows a loading spinner while processing, and a friendly error message with a link back to /auth if the code is invalid or expired.\nURL query params and hash fragments are stripped from the address bar after processing so tokens are not left visible.\nSUPABASE_STEPS.md instructs the user to add /auth/callback to Supabase Auth URL Configuration.\nnpm run build passes cleanly.",
+      "confirmedAt": "2026-06-09T23:25:04.636Z"
+    },
+    "constraints": {
+      "answer": "Never alter existing project configuration (vite.config.ts, tailwind.config.ts, tsconfig.json) unless explicitly required., All Supabase interactions go through hooks or library functions; never call supabase directly inside JSX render., Do not modify .env.local or commit secrets., Do not skip npm run build verification.",
+      "confirmedAt": "2026-06-09T23:25:04.636Z"
+    },
+    "phases": {
+      "answer": "Phase 1 — Auth Callback Flow",
+      "confirmedAt": "2026-06-09T23:25:04.636Z"
+    },
+    "assumptions": {
+      "answer": "Supabase JS v2 (^2.108.1) is installed and uses PKCE by default for email links, password reset, and OAuth.; SUPABASE_STEPS.md already exists and will be updated.; The user will add /auth/callback to Supabase Auth → URL Configuration and to email/OAuth redirect settings.; Modern browsers support sessionStorage, URLSearchParams, and history.replaceState.",
+      "confirmedAt": "2026-06-09T23:25:04.636Z"
+    }
+  },
+  "phases": [
+    {
+      "id": "phase-1",
+      "index": 1,
+      "name": "Phase 1 — Auth Callback Flow",
+      "goal": "Create the production-grade callback page; wire all redirectTo targets; preserve deep links in ProtectedRoute; update handoff doc; verify build.",
+      "description": "",
+      "budget": "200k tokens",
+      "parallel": false,
+      "status": "completed",
+      "steps": [
+        {
+          "id": "step-1",
+          "index": 1,
+          "description": "Create src/pages/AuthCallback.tsx: read ?code from URL, call exchangeCodeForSession if present; fallback to getSession for legacy hash tokens; show loading spinner; on success read redirectTo from sessionStorage and navigate there (or / fallback); on error show a retry link to /auth; strip query/hash from URL via history.replaceState.",
+          "status": "verified",
+          "verification": {
+            "command": "test -f src/pages/AuthCallback.tsx",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T23:25:57.514Z",
+          "completedAt": "2026-06-09T23:29:15.229Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T23:29:15.229Z"
+          }
+        },
+        {
+          "id": "step-2",
+          "index": 2,
+          "description": "Modify src/components/ProtectedRoute.tsx: before redirecting to /auth, save location.pathname + location.search to sessionStorage under redirectTo key.",
+          "status": "verified",
+          "verification": {
+            "command": "grep -q 'sessionStorage' src/components/ProtectedRoute.tsx",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T23:29:53.277Z",
+          "completedAt": "2026-06-09T23:31:49.394Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T23:31:49.394Z"
+          }
+        },
+        {
+          "id": "step-3",
+          "index": 3,
+          "description": "Modify src/pages/Auth.tsx to change redirectTo prop from window.location.origin to window.location.origin + '/auth/callback'.",
+          "status": "verified",
+          "verification": {
+            "command": "grep -q 'auth/callback' src/pages/Auth.tsx",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T23:32:09.680Z",
+          "completedAt": "2026-06-09T23:33:41.310Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T23:33:41.310Z"
+          }
+        },
+        {
+          "id": "step-4",
+          "index": 4,
+          "description": "Modify src/lib/auth.ts: pass redirectTo: window.location.origin + '/auth/callback' in signInWithGoogle and signInWithGitHub options.",
+          "status": "verified",
+          "verification": {
+            "command": "grep -q 'auth/callback' src/lib/auth.ts",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T23:34:24.293Z",
+          "completedAt": "2026-06-09T23:36:25.348Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T23:36:25.348Z"
+          }
+        },
+        {
+          "id": "step-5",
+          "index": 5,
+          "description": "Modify src/App.tsx: add /auth/callback route outside ProtectedRoute, import AuthCallback page.",
+          "status": "verified",
+          "verification": {
+            "command": "grep -q 'auth/callback' src/App.tsx",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T23:36:49.988Z",
+          "completedAt": "2026-06-09T23:38:16.890Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T23:38:16.890Z"
+          }
+        },
+        {
+          "id": "step-6",
+          "index": 6,
+          "description": "Update SUPABASE_STEPS.md Post-Setup Checklist and Auth section to include /auth/callback in the allowed redirect URLs and email template redirect configuration.",
+          "status": "verified",
+          "verification": {
+            "command": "grep -q 'auth/callback' SUPABASE_STEPS.md",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T23:38:38.430Z",
+          "completedAt": "2026-06-09T23:41:44.885Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T23:41:44.885Z"
+          }
+        },
+        {
+          "id": "step-7",
+          "index": 7,
+          "description": "Run npm run build to verify no TypeScript or build errors after all changes.",
+          "status": "verified",
+          "verification": {
+            "command": "npm run build",
+            "retries": 2,
+            "retryDelayMs": 1000
+          },
+          "parallel": false,
+          "startedAt": "2026-06-09T23:42:15.031Z",
+          "completedAt": "2026-06-09T23:43:14.377Z",
+          "result": {
+            "success": true,
+            "exitCode": 0,
+            "stdout": "",
+            "stderr": "",
+            "completedAt": "2026-06-09T23:43:14.377Z"
+          }
+        }
+      ],
+      "startedAt": "2026-06-09T23:25:25.400Z",
+      "completedAt": "2026-06-09T23:43:43.978Z",
+      "summary": "Phase 1 — Auth Callback Flow complete.\n1. AuthCallback.tsx created with PKCE exchange, getSession fallback, onAuthStateChange timeout, loading/error UI, sessionStorage redirectTo, and URL cleanup.\n2. ProtectedRoute.tsx saves current path before redirect.\n3. Auth.tsx redirectTo updated to /auth/callback.\n4. auth.ts OAuth functions pass redirectTo.\n5. App.tsx wired /auth/callback route outside guards.\n6. SUPABASE_STEPS.md updated with callback URL checklist.\n7. Build verified successfully."
+    }
+  ],
+  "decisions": [],
+  "memories": [],
+  "createdAt": "2026-06-09T22:59:17.359Z",
+  "updatedAt": "2026-06-09T23:45:08.650Z",
+  "goal": "Implement a production-grade auth callback redirect flow that fixes the broken email-link auth sync. Handle PKCE code exchange, preserve deep links across login, support all auth methods (magic link, password reset, email confirmation, OAuth), and surface clear loading/error states on the callback page. Update the handoff doc so the Supabase dashboard is configured correctly for the callback URL.",
+  "successCriteria": [
+    "Auth email links redirect to /auth/callback, exchange the PKCE code, establish the session, then redirect back to the originally requested page (e.g. /batch/123).",
+    "Protected routes transparently save the current path before redirecting to /auth, so users never lose their place after login.",
+    "OAuth (Google/GitHub) uses /auth/callback as the exact redirect URI.",
+    "AuthCallback page shows a loading spinner while processing, and a friendly error message with a link back to /auth if the code is invalid or expired.",
+    "URL query params and hash fragments are stripped from the address bar after processing so tokens are not left visible.",
+    "SUPABASE_STEPS.md instructs the user to add /auth/callback to Supabase Auth URL Configuration.",
+    "npm run build passes cleanly."
+  ],
+  "constraints": [
+    "Never alter existing project configuration (vite.config.ts, tailwind.config.ts, tsconfig.json) unless explicitly required.",
+    "All Supabase interactions go through hooks or library functions; never call supabase directly inside JSX render.",
+    "Do not modify .env.local or commit secrets.",
+    "Do not skip npm run build verification."
+  ],
+  "lastActiveAt": "2026-06-09T23:25:25.400Z",
+  "grade": {
+    "grade": "C",
+    "rationale": "Phase 1 relied almost entirely on proxy verification (file existence/grep) and a single npm run build; no phase actually exercised the PKCE exchange, session establishment, or deep-link redirect at runtime, and C3 explicitly excuses the lack of real end-to-end Supabase runtime verification. The claimed delivered files constitute a small fraction of the total diff, which also contains massive unexplained rewrites of unrelated pages such as RecipeVault.tsx, Community.tsx, and BatchDetail.tsx that the final summary never acknowledges, indicating suspect coverage or unreported scope bleed.",
+    "gradedAt": "2026-06-09T23:45:08.645Z"
+  }
+}

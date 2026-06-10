@@ -1,20 +1,43 @@
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 
-const data = [
-  { day: "D1", gravity: 1.072, temp: 65 },
-  { day: "D3", gravity: 1.065, temp: 66 },
-  { day: "D5", gravity: 1.058, temp: 69 },
-  { day: "D7", gravity: 1.052, temp: 67 },
-  { day: "D9", gravity: 1.048, temp: 68 },
-  { day: "D11", gravity: 1.042, temp: 68 },
-  { day: "D13", gravity: 1.035, temp: 67 },
-];
+interface Reading {
+  read_at: string;
+  gravity: number;
+  temp_f: number | null;
+}
 
-const GravityCurve = () => {
+interface GravityCurveProps {
+  readings?: Reading[];
+}
+
+function formatDay(readAt: string) {
+  const d = new Date(readAt);
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+const GravityCurve = ({ readings }: GravityCurveProps) => {
+  const data = (readings ?? [])
+    .slice()
+    .sort((a, b) => new Date(a.read_at).getTime() - new Date(b.read_at).getTime())
+    .map((r) => ({
+      day: formatDay(r.read_at),
+      gravity: Number(r.gravity),
+      temp: r.temp_f ?? 0,
+    }));
+
+  const hasData = data.length > 0;
+
   return (
     <div className="glass-panel rounded-xl p-4">
-      <h3 className="font-slab font-semibold text-sm mb-3">Gravity Curve — Amber Ale</h3>
+      <h3 className="font-slab font-semibold text-sm mb-3">
+        Gravity Curve
+      </h3>
       <div className="h-48 md:h-56">
+        {!hasData ? (
+          <div className="w-full h-full flex items-center justify-center text-muted-foreground text-sm">
+            No readings yet
+          </div>
+        ) : (
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
             <defs>
@@ -46,6 +69,7 @@ const GravityCurve = () => {
             />
           </AreaChart>
         </ResponsiveContainer>
+        )}
       </div>
     </div>
   );

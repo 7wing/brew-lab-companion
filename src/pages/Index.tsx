@@ -10,70 +10,7 @@ import { Link } from "react-router-dom";
 import BatchCard from "@/components/BatchCard";
 import ReadingsTable from "@/components/ReadingsTable";
 import GravityCurve from "@/components/GravityCurve";
-
-const batches = [
-  {
-    id: "1",
-    name: "Autumn Amber Ale",
-    type: "beer" as const,
-    gravity: 1.048,
-    targetGravity: 1.012,
-    daysElapsed: 9,
-    totalDays: 14,
-    nextAction: "Dry Hop Tomorrow",
-    style: "American Amber",
-  },
-  {
-    id: "2",
-    name: "Ginger Kombucha F2",
-    type: "kombucha" as const,
-    gravity: 1.018,
-    targetGravity: 1.005,
-    daysElapsed: 4,
-    totalDays: 7,
-    nextAction: "Bottle Today",
-    style: "Ginger Lemon",
-  },
-  {
-    id: "3",
-    name: "Wildflower Mead",
-    type: "mead" as const,
-    gravity: 1.095,
-    targetGravity: 1.01,
-    daysElapsed: 21,
-    totalDays: 90,
-    style: "Traditional Sweet",
-  },
-  {
-    id: "4",
-    name: "Apple Cider Reserve",
-    type: "cider" as const,
-    gravity: 1.052,
-    targetGravity: 1.0,
-    daysElapsed: 12,
-    totalDays: 28,
-    nextAction: "Rack to Secondary",
-    style: "Dry Farmhouse",
-  },
-  {
-    id: "5",
-    name: "Rye Sourdough #47",
-    type: "sourdough" as const,
-    gravity: 1.0,
-    targetGravity: 1.0,
-    daysElapsed: 2,
-    totalDays: 3,
-    nextAction: "Feed Starter",
-    style: "Dark Rye",
-  },
-];
-
-const milestones = [
-  { date: "Mar 9", label: "Dry Hop — Amber Ale", type: "beer" },
-  { date: "Mar 8", label: "Bottle — Kombucha F2", type: "kombucha" },
-  { date: "Mar 15", label: "Rack — Cider Reserve", type: "cider" },
-  { date: "Apr 2", label: "First Tasting — Mead", type: "mead" },
-];
+import { useBatches } from "@/hooks/useBatches";
 
 const typeColors: Record<string, string> = {
   beer: "bg-copper/20 text-copper",
@@ -82,7 +19,44 @@ const typeColors: Record<string, string> = {
   cider: "bg-copper/15 text-copper",
 };
 
+function daysSince(start: string) {
+  const diff = Date.now() - new Date(start).getTime();
+  return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
+}
+
+function nextAction(batch: any): string | undefined {
+  const stages = (batch.batch_stages ?? []) as Array<{
+    name: string;
+    scheduled: string | null;
+    completed: boolean;
+  }>;
+  const pending = stages
+    .filter((s) => !s.completed)
+    .sort(
+      (a, b) =>
+        (a.scheduled ?? "").localeCompare(b.scheduled ?? "")
+    );
+  return pending[0]?.name;
+}
+
 const Index = () => {
+  const { data: batches, isLoading } = useBatches();
+
+  const upcoming = (batches ?? [])
+    .flatMap((b: any) =>
+      (b.batch_stages ?? []).map((s: any) => ({
+        ...s,
+        batchName: b.name,
+        batchType: b.type,
+      }))
+    )
+    .filter((s: any) => !s.completed && s.scheduled)
+    .sort(
+      (a: any, b: any) =>
+        (a.scheduled ?? "").localeCompare(b.scheduled ?? "")
+    )
+    .slice(0, 4);
+
   return (
     <div className="animate-fade-in">
       {/* Page header */}
@@ -90,10 +64,17 @@ const Index = () => {
         <div>
           <h1 className="font-slab text-2xl md:text-3xl font-bold">Brew Bench</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            5 active batches — 2 actions pending
+            {isLoading
+              ? "Loading batches…"
+              : `${batches?.length ?? 0} active batch${
+                  batches?.length === 1 ? "" : "es"
+                }`}
           </p>
         </div>
-        <Link to="/new-brew" className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-copper to-copper/80 text-copper-foreground font-medium text-sm shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5">
+        <Link
+          to="/new-brew"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-copper to-copper/80 text-copper-foreground font-medium text-sm shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
+        >
           <Plus size={16} />
           Start New Brew
         </Link>
@@ -130,23 +111,37 @@ const Index = () => {
               Upcoming
             </h3>
             <div className="space-y-3">
-              {milestones.map((m, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <div className={`w-2 h-2 mt-1.5 rounded-full ${typeColors[m.type]?.split(" ")[0] || "bg-muted"}`} />
-                  <div>
-                    <p className="text-xs font-semibold">{m.date}</p>
-                    <p className="text-xs text-muted-foreground">{m.label}</p>
+              {upcoming.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No upcoming actions.</p>
+              ) : (
+                upcoming.map((m: any, i: number) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <div
+                      className={`w-2 h-2 mt-1.5 rounded-full ${
+                        typeColors[m.batchType]?.split(" ")[0] || "bg-muted"
+                      }`}
+                    />
+                    <div>
+                      <p className="text-xs font-semibold">{m.scheduled}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {m.name} — {m.batchName}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
 
           {/* Sponsor */}
           <div className="glass-panel rounded-xl p-4 border-copper/20">
-            <p className="text-[10px] uppercase tracking-widest text-copper font-semibold mb-2">Featured Lab Partner</p>
+            <p className="text-[10px] uppercase tracking-widest text-copper font-semibold mb-2">
+              Featured Lab Partner
+            </p>
             <p className="text-sm font-medium">BrewCraft Yeasts</p>
-            <p className="text-xs text-muted-foreground mt-1">Premium Belgian & Wild strains for craft fermentation</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Premium Belgian & Wild strains for craft fermentation
+            </p>
           </div>
         </aside>
 
@@ -154,19 +149,54 @@ const Index = () => {
         <section>
           <h2 className="font-slab text-lg font-semibold mb-4">Active Fermentations</h2>
 
-          {/* Scrollable batch shelf */}
-          <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory xl:grid xl:grid-cols-2 2xl:grid-cols-3 xl:overflow-visible">
-            {batches.map((batch) => (
-              <div key={batch.id} className="snap-start shrink-0 xl:shrink">
-                <BatchCard {...batch} />
+          {isLoading ? (
+            <div className="flex gap-4 overflow-x-auto pb-4">
+              {[1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="min-w-[260px] h-48 bg-muted/50 rounded-xl animate-pulse"
+                />
+              ))}
+            </div>
+          ) : (batches ?? []).length === 0 ? (
+            <div className="glass-panel rounded-xl p-8 text-center">
+              <p className="text-muted-foreground mb-4">
+                No active fermentations yet.
+              </p>
+              <Link
+                to="/new-brew"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-copper to-copper/80 text-copper-foreground font-medium text-sm shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
+              >
+                <Plus size={16} />
+                Start New Brew
+              </Link>
+            </div>
+          ) : (
+            <>
+              <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory xl:grid xl:grid-cols-2 2xl:grid-cols-3 xl:overflow-visible">
+                {(batches ?? []).map((batch: any) => (
+                  <div key={batch.id} className="snap-start shrink-0 xl:shrink">
+                    <BatchCard
+                      id={batch.id}
+                      name={batch.name}
+                      type={batch.type}
+                      gravity={batch.og ?? 1.0}
+                      targetGravity={batch.target_fg ?? 1.0}
+                      daysElapsed={daysSince(batch.start_date)}
+                      totalDays={batch.target_days}
+                      nextAction={nextAction(batch)}
+                      style={batch.recipe?.title ?? undefined}
+                    />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          {/* Gravity Curve */}
-          <div className="mt-6">
-            <GravityCurve />
-          </div>
+              {/* Gravity Curve */}
+              <div className="mt-6">
+                <GravityCurve />
+              </div>
+            </>
+          )}
         </section>
 
         {/* Right panel - Readings */}
@@ -178,14 +208,18 @@ const Index = () => {
             <h3 className="font-slab font-semibold text-sm mb-3">Lab Stats</h3>
             <div className="grid grid-cols-2 gap-3">
               {[
-                { label: "Active", value: "5", accent: "text-copper" },
-                { label: "Completed", value: "23", accent: "text-teal" },
-                { label: "This Month", value: "3", accent: "text-gold" },
-                { label: "Avg Days", value: "18", accent: "text-muted-foreground" },
+                { label: "Active", value: String(batches?.length ?? 0), accent: "text-copper" },
+                { label: "Completed", value: "—", accent: "text-teal" },
+                { label: "This Month", value: "—", accent: "text-gold" },
+                { label: "Avg Days", value: "—", accent: "text-muted-foreground" },
               ].map((s, i) => (
                 <div key={i} className="text-center p-2 rounded-lg bg-muted/30">
-                  <p className={`text-xl font-mono font-bold ${s.accent}`}>{s.value}</p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{s.label}</p>
+                  <p className={`text-xl font-mono font-bold ${s.accent}`}>
+                    {s.value}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                    {s.label}
+                  </p>
                 </div>
               ))}
             </div>
