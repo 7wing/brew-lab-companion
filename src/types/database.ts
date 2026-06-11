@@ -452,6 +452,26 @@ export interface Database {
           created_at?: string | null
         }
       }
+      follows: {
+        Row: {
+          id: string
+          follower_id: string
+          followed_id: string
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          follower_id: string
+          followed_id: string
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          follower_id?: string
+          followed_id?: string
+          created_at?: string | null
+        }
+      }
       yeast_bank: {
         Row: {
           id: string

@@ -1,6 +1,8 @@
-import { FlaskConical, Award, Users, Beaker, ChevronDown, ChevronUp, Loader2, Camera, Plus, Trash2, Pencil } from "lucide-react";
+import { FlaskConical, Award, Users, Beaker, ChevronDown, ChevronUp, Loader2, Camera, Plus, Trash2, Pencil, Settings, LogOut, UserPlus, UserMinus } from "lucide-react";
 import { toast } from "sonner";
 import { useState } from "react";
+import { useParams } from "react-router-dom";
+import { supabase } from "@/lib/supabase";
 import {
   Dialog,
   DialogContent,
@@ -15,10 +17,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
+import { useQuery } from "@tanstack/react-query";
 import { useYeastBank, useAddYeastStrain, useDeleteYeastStrain } from "@/hooks/useYeastBank";
 import { useBatches } from "@/hooks/useBatches";
 import { useRecipes } from "@/hooks/useRecipes";
 import { useUpload } from "@/hooks/useUpload";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import {
+  useIsFollowing,
+  useFollowerCount,
+  useFollowingCount,
+  useFollowers,
+  useFollowing,
+  useFollow,
+  useUnfollow,
+} from "@/hooks/useFollows";
 
 const badges = [
   { name: "First Brew", icon: "🍺" },
@@ -47,11 +61,45 @@ const AccordionSection = ({ title, icon: Icon, children }: { title: string; icon
 };
 
 const Profile = () => {
-  const { data: profile, isLoading: profileLoading } = useProfile();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const { id: profileId } = useParams<{ id: string }>();
+  const isOwnProfile = !profileId || profileId === user?.id;
+  const targetId = profileId || user?.id;
+
+  // Fetch viewed profile (if not own)
+  const { data: viewedProfile, isLoading: viewedProfileLoading } = useQuery({
+    queryKey: ["profile", profileId],
+    queryFn: async () => {
+      if (!profileId) return null;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*, batches(count), recipes(count)")
+        .eq("id", profileId)
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!profileId,
+  });
+
+  const { data: ownProfile, isLoading: ownProfileLoading } = useProfile();
+  const profile = isOwnProfile ? ownProfile : viewedProfile;
+  const profileLoading = isOwnProfile ? ownProfileLoading : viewedProfileLoading;
+
   const { data: batches } = useBatches();
   const { data: recipes } = useRecipes();
   const updateProfile = useUpdateProfile();
   const { upload: uploadAvatar, uploading: avatarUploading } = useUpload('avatars');
+
+  // Follow hooks
+  const { data: isFollowing } = useIsFollowing(targetId);
+  const { data: followerCount } = useFollowerCount(targetId);
+  const { data: followingCount } = useFollowingCount(targetId);
+  const { data: followersList } = useFollowers(targetId);
+  const { data: followingList } = useFollowing(targetId);
+  const followMutation = useFollow();
+  const unfollowMutation = useUnfollow();
 
   const { data: yeastStrains, isLoading: yeastLoading } = useYeastBank();
   const addYeast = useAddYeastStrain();
@@ -59,6 +107,7 @@ const Profile = () => {
 
   const [editOpen, setEditOpen] = useState(false);
   const [newYeastOpen, setNewYeastOpen] = useState(false);
+  const [connectionsTab, setConnectionsTab] = useState<"followers" | "following">("followers");
   const [editDisplayName, setEditDisplayName] = useState("");
   const [editBio, setEditBio] = useState("");
   const [editLocation, setEditLocation] = useState("");
@@ -158,24 +207,59 @@ const Profile = () => {
           {profile?.bio || "No bio yet."}
         </p>
 
-        <button
-          onClick={() => {
-            setEditDisplayName(profile?.display_name || "");
-            setEditBio(profile?.bio || "");
-            setEditLocation(profile?.location || "");
-            setEditOpen(true);
-          }}
-          className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border/50 text-xs hover:bg-muted transition-colors"
-        >
-          <Pencil size={12} /> Edit Profile
-        </button>
+        <div className="mt-4 flex items-center justify-center gap-2">
+          {isOwnProfile ? (
+            <button
+              onClick={() => {
+                setEditDisplayName(profile?.display_name || "");
+                setEditBio(profile?.bio || "");
+                setEditLocation(profile?.location || "");
+                setEditOpen(true);
+              }}
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border/50 text-xs hover:bg-muted transition-colors"
+            >
+              <Pencil size={12} /> Edit Profile
+            </button>
+          ) : (
+            <Button
+              variant={isFollowing ? "outline" : "default"}
+              size="sm"
+              onClick={async () => {
+                if (!targetId) return;
+                try {
+                  if (isFollowing) {
+                    await unfollowMutation.mutateAsync(targetId);
+                    toast.success("Unfollowed");
+                  } else {
+                    await followMutation.mutateAsync(targetId);
+                    toast.success("Following!");
+                  }
+                } catch (err: any) {
+                  toast.error(err?.message || "Something went wrong");
+                }
+              }}
+              disabled={followMutation.isPending || unfollowMutation.isPending}
+              className="text-xs"
+            >
+              {followMutation.isPending || unfollowMutation.isPending ? (
+                <Loader2 size={12} className="animate-spin mr-1" />
+              ) : isFollowing ? (
+                <UserMinus size={12} className="mr-1" />
+              ) : (
+                <UserPlus size={12} className="mr-1" />
+              )}
+              {isFollowing ? "Unfollow" : "Follow"}
+            </Button>
+          )}
+        </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mt-6 max-w-sm mx-auto">
+        <div className="grid grid-cols-4 gap-4 mt-6 max-w-sm mx-auto">
           {[
             { label: "Batches", value: String(batches?.length ?? 0), color: "text-copper" },
             { label: "Recipes", value: String(recipes?.length ?? 0), color: "text-teal" },
-            { label: "Yeast Strains", value: String(yeastStrains?.length ?? 0), color: "text-gold" },
+            { label: "Followers", value: String(followerCount ?? 0), color: "text-gold" },
+            { label: "Following", value: String(followingCount ?? 0), color: "text-amber" },
           ].map((s, i) => (
             <div key={i}>
               <p className={`text-2xl font-mono font-bold ${s.color}`}>{s.value}</p>
@@ -256,7 +340,123 @@ const Profile = () => {
         </AccordionSection>
 
         <AccordionSection title="Connections" icon={Users}>
-          <p className="text-sm text-muted-foreground">Connections coming soon.</p>
+          {targetId && (
+            <div className="flex gap-2 mb-3">
+              <button
+                onClick={() => setConnectionsTab("followers")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  connectionsTab === "followers"
+                    ? "bg-copper/20 text-copper"
+                    : "bg-muted/30 text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Followers ({followerCount ?? 0})
+              </button>
+              <button
+                onClick={() => setConnectionsTab("following")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  connectionsTab === "following"
+                    ? "bg-copper/20 text-copper"
+                    : "bg-muted/30 text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Following ({followingCount ?? 0})
+              </button>
+            </div>
+          )}
+          {connectionsTab === "followers" ? (
+            <div className="space-y-2">
+              {(followersList ?? []).length === 0 ? (
+                <p className="text-xs text-muted-foreground py-4 text-center">No followers yet.</p>
+              ) : (
+                (followersList ?? []).map((f: any) => (
+                  <div
+                    key={f.id}
+                    onClick={() => navigate(`/profile/${f.follower_id}`)}
+                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30 cursor-pointer transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-copper/30 to-teal/30 border border-copper/30 flex items-center justify-center shrink-0">
+                      {f.profiles?.avatar_url ? (
+                        <img
+                          src={f.profiles.avatar_url}
+                          alt=""
+                          className="w-full h-full object-cover rounded-full"
+                        />
+                      ) : (
+                        <FlaskConical size={14} className="text-copper" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        {f.profiles?.display_name || f.profiles?.username || "User"}
+                      </p>
+                      {f.profiles?.username && (
+                        <p className="text-[10px] text-muted-foreground">@{f.profiles.username}</p>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {(followingList ?? []).length === 0 ? (
+                <p className="text-xs text-muted-foreground py-4 text-center">Not following anyone yet.</p>
+              ) : (
+                (followingList ?? []).map((f: any) => (
+                  <div
+                    key={f.id}
+                    onClick={() => navigate(`/profile/${f.followed_id}`)}
+                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/30 cursor-pointer transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-copper/30 to-teal/30 border border-copper/30 flex items-center justify-center shrink-0">
+                      {f.profiles?.avatar_url ? (
+                        <img
+                          src={f.profiles.avatar_url}
+                          alt=""
+                          className="w-full h-full object-cover rounded-full"
+                        />
+                      ) : (
+                        <FlaskConical size={14} className="text-copper" />
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        {f.profiles?.display_name || f.profiles?.username || "User"}
+                      </p>
+                      {f.profiles?.username && (
+                        <p className="text-[10px] text-muted-foreground">@{f.profiles.username}</p>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </AccordionSection>
+
+        <AccordionSection title="Account Settings" icon={Settings}>
+          <div className="space-y-3">
+            <div className="text-xs text-muted-foreground">
+              Signed in as <span className="font-medium text-foreground">{profile?.username || user?.email}</span>
+            </div>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="w-full"
+              onClick={async () => {
+                try {
+                  await signOut();
+                  navigate("/auth");
+                } catch (err: any) {
+                  toast.error(err?.message || "Failed to sign out");
+                }
+              }}
+            >
+              <LogOut size={14} className="mr-2" />
+              Sign Out
+            </Button>
+          </div>
         </AccordionSection>
       </div>
 

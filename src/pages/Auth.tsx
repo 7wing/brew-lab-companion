@@ -1,8 +1,16 @@
 import { Auth } from '@supabase/auth-ui-react'
 import { ThemeSupa } from '@supabase/auth-ui-shared'
+import { Navigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function AuthPage() {
+  const { user } = useAuth()
+
+  if (user) {
+    return <Navigate to="/" replace />
+  }
+
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4">
       <div className="glass-panel rounded-2xl p-8 w-full max-w-md">

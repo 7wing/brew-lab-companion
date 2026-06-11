@@ -71,3 +71,33 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+
+## Seeding test data
+
+To create 5 test users with profiles, recipes, posts, batches, readings, and follow relationships:
+
+1. Copy `.env.local` and add your **Supabase service_role key**:
+   ```sh
+   cp .env.local .env.local
+   # Edit .env.local and replace `your-service-role-key-here` with the real key
+   ```
+   > Get the key from Supabase Dashboard → Project Settings → API → `service_role` key.
+
+2. Apply the follows table migration to Supabase:
+   ```sh
+   npx supabase db push
+   # Or run the SQL manually in the SQL Editor:
+   # supabase/migrations/20240611_add_follows.sql
+   ```
+
+3. Run the seed script:
+   ```sh
+   node scripts/seed-test-data.mjs
+   ```
+
+4. Log in with any of the created accounts:
+   - `hoppy.brewer@example.com` / `TestPass123!`
+   - `kombucha.queen@example.com` / `TestPass123!`
+   - `mead.master@example.com` / `TestPass123!`
+   - `sourdough.sam@example.com` / `TestPass123!`
+   - `cider.sid@example.com` / `TestPass123!`

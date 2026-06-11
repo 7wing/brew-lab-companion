@@ -8,11 +8,14 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    allowedHosts: ["f49x5q-8080.csb.app"],
     hmr: {
       overlay: false,
     },
   },
-  plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
+  plugins: [react(), mode === "development" && componentTagger()].filter(
+    Boolean
+  ),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -23,7 +26,11 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks(id) {
           if (id.includes("node_modules")) {
-            if (["react", "react-dom", "react-router-dom"].some((lib) => id.includes(lib))) {
+            if (
+              ["react", "react-dom", "react-router-dom"].some((lib) =>
+                id.includes(lib)
+              )
+            ) {
               return "vendor-react";
             }
             if (id.includes("@supabase")) {

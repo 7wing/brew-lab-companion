@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { MessageSquare, Heart, Share2, ChevronLeft, ChevronRight, FlaskConical, Send, Loader2 } from "lucide-react";
 import { usePosts, useToggleLike, useComments, useAddComment } from "@/hooks/usePosts";
+import { useFollowedPosts } from "@/hooks/useFollowedPosts";
 
 const tabs = [
   { label: "Recipes Shared", category: "recipe" },
   { label: "Troubleshooting", category: "troubleshooting" },
   { label: "Tastings", category: "tasting" },
+  { label: "Following", category: "following" },
 ];
 
 const typeAccent: Record<string, string> = {
@@ -24,7 +26,12 @@ const Community = () => {
   const [commentText, setCommentText] = useState("");
 
   const category = tabs[activeTab]?.category;
-  const { data: posts, isLoading } = usePosts(category);
+  const isFollowingTab = category === "following";
+  const { data: posts, isLoading: postsLoading } = usePosts(isFollowingTab ? undefined : category);
+  const { data: followedPosts, isLoading: followedPostsLoading } = useFollowedPosts();
+
+  const postsData = isFollowingTab ? followedPosts : posts;
+  const isLoading = isFollowingTab ? followedPostsLoading : postsLoading;
 
   const addComment = useAddComment();
 
@@ -75,7 +82,7 @@ const Community = () => {
             <div key={i} className="h-40 bg-muted/50 rounded-xl animate-pulse" />
           ))}
         </div>
-      ) : (posts ?? []).length === 0 ? (
+      ) : (postsData ?? []).length === 0 ? (
         <div className="glass-panel rounded-xl p-8 text-center max-w-3xl">
           <p className="text-muted-foreground">No posts yet in this category.</p>
         </div>
@@ -83,7 +90,7 @@ const Community = () => {
         <>
           {/* Posts */}
           <div className="space-y-4 max-w-3xl">
-            {(posts ?? []).map((post: any) => (
+            {(postsData ?? []).map((post: any) => (
               <PostCard
                 key={post.id}
                 post={post}

@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/contexts/AuthContext";
 import { Loader2, FlaskConical, AlertCircle } from "lucide-react";
 
 type AuthState = "loading" | "success" | "error";
 
 export default function AuthCallback() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [state, setState] = useState<AuthState>("loading");
   const [errorMessage, setErrorMessage] = useState<string>("");
 
@@ -28,9 +30,6 @@ export default function AuthCallback() {
 
         if (data.session) {
           setState("success");
-          const redirectTo = sessionStorage.getItem("redirectTo") || "/";
-          sessionStorage.removeItem("redirectTo");
-          navigate(redirectTo, { replace: true });
           return;
         }
 
@@ -52,9 +51,6 @@ export default function AuthCallback() {
 
         if (sessionFromEvent) {
           setState("success");
-          const redirectTo = sessionStorage.getItem("redirectTo") || "/";
-          sessionStorage.removeItem("redirectTo");
-          navigate(redirectTo, { replace: true });
           return;
         }
 
@@ -77,6 +73,15 @@ export default function AuthCallback() {
     completeAuth();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Navigate only after AuthContext has updated the user state
+  useEffect(() => {
+    if (state === "success" && user != null) {
+      const redirectTo = sessionStorage.getItem("redirectTo") || "/";
+      sessionStorage.removeItem("redirectTo");
+      navigate(redirectTo, { replace: true });
+    }
+  }, [state, user, navigate]);
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4">
