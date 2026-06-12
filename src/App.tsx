@@ -2,19 +2,16 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import AppLayout from "./components/AppLayout";
 import Index from "./pages/Index";
 import RecipeVault from "./pages/RecipeVault";
-import FermentationMonitor from "./pages/FermentationMonitor";
 import Community from "./pages/Community";
-import Challenges from "./pages/Challenges";
 import Profile from "./pages/Profile";
 import BatchDetail from "./pages/BatchDetail";
 import BrewSetup from "./pages/BrewSetup";
-import LiveTasting from "./pages/LiveTasting";
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
 import Search from "./pages/Search";
@@ -49,14 +46,7 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/monitor"
-                element={
-                  <ProtectedRoute>
-                    <FermentationMonitor />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="/monitor" element={<Navigate to="/" replace />} />
               <Route
                 path="/community"
                 element={
@@ -65,14 +55,7 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/challenges"
-                element={
-                  <ProtectedRoute>
-                    <Challenges />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="/challenges" element={<Navigate to="/community?tab=challenges" replace />} />
               <Route
                 path="/profile/:id?"
                 element={
@@ -97,14 +80,7 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/live-tasting"
-                element={
-                  <ProtectedRoute>
-                    <LiveTasting />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="/live-tasting" element={<Navigate to="/community?tab=live" replace />} />
               <Route
                 path="/search"
                 element={

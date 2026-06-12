@@ -1,13 +1,18 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { MessageSquare, Heart, Share2, ChevronLeft, ChevronRight, FlaskConical, Send, Loader2 } from "lucide-react";
 import { usePosts, useToggleLike, useComments, useAddComment } from "@/hooks/usePosts";
 import { useFollowedPosts } from "@/hooks/useFollowedPosts";
+import ChallengesPanel from "@/components/ChallengesPanel";
+import LiveTastingPanel from "@/components/LiveTastingPanel";
 
 const tabs = [
   { label: "Recipes Shared", category: "recipe" },
   { label: "Troubleshooting", category: "troubleshooting" },
   { label: "Tastings", category: "tasting" },
   { label: "Following", category: "following" },
+  { label: "Challenges", panel: "challenges" },
+  { label: "Live", panel: "live" },
 ];
 
 const typeAccent: Record<string, string> = {
@@ -20,15 +25,25 @@ const typeAccent: Record<string, string> = {
 };
 
 const Community = () => {
-  const [activeTab, setActiveTab] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get("tab");
+    if (tab) {
+      const idx = tabs.findIndex((t) => t.panel === tab || t.category === tab);
+      return idx !== -1 ? idx : 0;
+    }
+    return 0;
+  });
   const [page, setPage] = useState(1);
   const [expandedPost, setExpandedPost] = useState<string | null>(null);
   const [commentText, setCommentText] = useState("");
 
-  const category = tabs[activeTab]?.category;
-  const isFollowingTab = category === "following";
-  const { data: posts, isLoading: postsLoading } = usePosts(isFollowingTab ? undefined : category);
-  const { data: followedPosts, isLoading: followedPostsLoading } = useFollowedPosts();
+  const activeTabData = tabs[activeTab];
+  const isPostTab = !!activeTabData?.category;
+  const isFollowingTab = activeTabData?.category === "following";
+  const category = activeTabData?.category;
+  const { data: posts, isLoading: postsLoading } = usePosts(isPostTab && !isFollowingTab ? category : undefined);
+  const { data: followedPosts, isLoading: followedPostsLoading } = useFollowedPosts({ enabled: isPostTab && isFollowingTab });
 
   const postsData = isFollowingTab ? followedPosts : posts;
   const isLoading = isFollowingTab ? followedPostsLoading : postsLoading;
@@ -63,8 +78,19 @@ const Community = () => {
       <div className="flex gap-1 mb-6 glass-panel rounded-xl p-1 w-fit">
         {tabs.map((tab, i) => (
           <button
-            key={tab.category}
-            onClick={() => { setActiveTab(i); setPage(1); setExpandedPost(null); }}
+            key={tab.label}
+            onClick={() => {
+              setActiveTab(i);
+              setPage(1);
+              setExpandedPost(null);
+              if (tab.panel) {
+                setSearchParams({ tab: tab.panel });
+              } else if (tab.category) {
+                setSearchParams({ tab: tab.category });
+              } else {
+                setSearchParams({});
+              }
+            }}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               activeTab === i
                 ? "bg-primary text-primary-foreground shadow-md"
@@ -76,51 +102,55 @@ const Community = () => {
         ))}
       </div>
 
-      {isLoading ? (
-        <div className="space-y-4 max-w-3xl">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-40 bg-muted/50 rounded-xl animate-pulse" />
-          ))}
-        </div>
-      ) : (postsData ?? []).length === 0 ? (
-        <div className="glass-panel rounded-xl p-8 text-center max-w-3xl">
-          <p className="text-muted-foreground">No posts yet in this category.</p>
-        </div>
-      ) : (
-        <>
-          {/* Posts */}
+      {activeTabData?.panel === "challenges" && <ChallengesPanel />}
+      {activeTabData?.panel === "live" && <LiveTastingPanel />}
+      {isPostTab && (
+        isLoading ? (
           <div className="space-y-4 max-w-3xl">
-            {(postsData ?? []).map((post: any) => (
-              <PostCard
-                key={post.id}
-                post={post}
-                isExpanded={expandedPost === post.id}
-                onToggleComments={() =>
-                  setExpandedPost((id) => (id === post.id ? null : post.id))
-                }
-                onShare={() => handleShare(post)}
-              />
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-40 bg-muted/50 rounded-xl animate-pulse" />
             ))}
           </div>
-
-          {/* Pagination placeholder */}
-          <div className="flex items-center justify-center gap-3 mt-8">
-            <button
-              onClick={() => setPage(Math.max(1, page - 1))}
-              className="p-2 rounded-lg glass-panel hover:bg-muted transition-colors"
-              disabled={page === 1}
-            >
-              <ChevronLeft size={16} />
-            </button>
-            <span className="text-sm font-medium px-3">Page {page}</span>
-            <button
-              onClick={() => setPage(page + 1)}
-              className="p-2 rounded-lg glass-panel hover:bg-muted transition-colors"
-            >
-              <ChevronRight size={16} />
-            </button>
+        ) : (postsData ?? []).length === 0 ? (
+          <div className="glass-panel rounded-xl p-8 text-center max-w-3xl">
+            <p className="text-muted-foreground">No posts yet in this category.</p>
           </div>
-        </>
+        ) : (
+          <>
+            {/* Posts */}
+            <div className="space-y-4 max-w-3xl">
+              {(postsData ?? []).map((post: any) => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  isExpanded={expandedPost === post.id}
+                  onToggleComments={() =>
+                    setExpandedPost((id) => (id === post.id ? null : post.id))
+                  }
+                  onShare={() => handleShare(post)}
+                />
+              ))}
+            </div>
+
+            {/* Pagination placeholder */}
+            <div className="flex items-center justify-center gap-3 mt-8">
+              <button
+                onClick={() => setPage(Math.max(1, page - 1))}
+                className="p-2 rounded-lg glass-panel hover:bg-muted transition-colors"
+                disabled={page === 1}
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <span className="text-sm font-medium px-3">Page {page}</span>
+              <button
+                onClick={() => setPage(page + 1)}
+                className="p-2 rounded-lg glass-panel hover:bg-muted transition-colors"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </>
+        )
       )}
 
       {/* Comment section overlay for expanded post */}

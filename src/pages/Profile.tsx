@@ -24,6 +24,7 @@ import { useRecipes } from "@/hooks/useRecipes";
 import { useUpload } from "@/hooks/useUpload";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import ThemeToggle from "@/components/ThemeToggle";
 import {
   useIsFollowing,
   useFollowerCount,
@@ -439,6 +440,10 @@ const Profile = () => {
           <div className="space-y-3">
             <div className="text-xs text-muted-foreground">
               Signed in as <span className="font-medium text-foreground">{profile?.username || user?.email}</span>
+            </div>
+            <div className="flex items-center justify-between py-2">
+              <span className="text-sm font-medium">Appearance</span>
+              <ThemeToggle />
             </div>
             <Button
               variant="destructive"
