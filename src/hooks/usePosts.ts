@@ -2,22 +2,27 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 
-export function usePosts(category?: string) {
+const PAGE_SIZE = 20
+
+export function usePosts(category?: string, page: number = 1) {
   return useQuery({
-    queryKey: ['posts', category],
+    queryKey: ['posts', category, page],
     queryFn: async () => {
+      const from = (page - 1) * PAGE_SIZE
+      const to = from + PAGE_SIZE - 1
       let q = supabase
         .from('posts')
-        .select('*, profiles(username, avatar_url)')
+        .select('*, profiles(username, avatar_url)', { count: 'exact' })
         .order('created_at', { ascending: false })
+        .range(from, to)
 
       if (category) {
         q = q.eq('category', category)
       }
 
-      const { data, error } = await q
+      const { data, error, count } = await q
       if (error) throw error
-      return data ?? []
+      return { posts: data ?? [], total: count ?? 0 }
     },
   })
 }

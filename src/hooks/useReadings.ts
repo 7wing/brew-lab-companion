@@ -34,7 +34,11 @@ export function useCreateReading() {
       if (!user) throw new Error('Not authenticated')
       const { data, error } = await supabase
         .from('readings')
-        .insert({ ...reading, user_id: user.id })
+        .insert({
+          ...reading,
+          user_id: user.id,
+          read_at: reading.read_at ?? new Date().toISOString(),
+        })
         .select()
         .single()
       if (error) throw error

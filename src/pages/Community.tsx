@@ -27,13 +27,16 @@ const Community = () => {
 
   const category = tabs[activeTab]?.category;
   const isFollowingTab = category === "following";
-  const { data: posts, isLoading: postsLoading } = usePosts(isFollowingTab ? undefined : category);
+  const isPostTab = !isFollowingTab;
+  const { data: postsDataRaw, isLoading: postsLoading } = usePosts(
+    isPostTab ? category : undefined,
+    isPostTab ? page : 1
+  );
   const { data: followedPosts, isLoading: followedPostsLoading } = useFollowedPosts();
 
-  const postsData = isFollowingTab ? followedPosts : posts;
+  const posts = isFollowingTab ? followedPosts : (postsDataRaw?.posts ?? []);
   const isLoading = isFollowingTab ? followedPostsLoading : postsLoading;
-
-  const addComment = useAddComment();
+  const hasMore = isFollowingTab ? false : (postsDataRaw?.total ?? 0) > page * 20;
 
   async function handleShare(post: any) {
     const url = `${window.location.origin}/community`;
@@ -82,7 +85,7 @@ const Community = () => {
             <div key={i} className="h-40 bg-muted/50 rounded-xl animate-pulse" />
           ))}
         </div>
-      ) : (postsData ?? []).length === 0 ? (
+      ) : (posts ?? []).length === 0 ? (
         <div className="glass-panel rounded-xl p-8 text-center max-w-3xl">
           <p className="text-muted-foreground">No posts yet in this category.</p>
         </div>
@@ -90,7 +93,7 @@ const Community = () => {
         <>
           {/* Posts */}
           <div className="space-y-4 max-w-3xl">
-            {(postsData ?? []).map((post: any) => (
+            {(posts ?? []).map((post: any) => (
               <PostCard
                 key={post.id}
                 post={post}
@@ -116,6 +119,7 @@ const Community = () => {
             <button
               onClick={() => setPage(page + 1)}
               className="p-2 rounded-lg glass-panel hover:bg-muted transition-colors"
+              disabled={!hasMore}
             >
               <ChevronRight size={16} />
             </button>

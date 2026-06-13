@@ -46,7 +46,7 @@ export default function AuthCallback() {
           setTimeout(() => {
             subscription.unsubscribe();
             resolve(null);
-          }, 3000);
+          }, 10000); // 10s — allows for slow OAuth redirects
         });
 
         if (sessionFromEvent) {

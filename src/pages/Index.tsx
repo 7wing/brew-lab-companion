@@ -11,6 +11,7 @@ import BatchCard from "@/components/BatchCard";
 import ReadingsTable from "@/components/ReadingsTable";
 import GravityCurve from "@/components/GravityCurve";
 import { useBatches } from "@/hooks/useBatches";
+import { useReadings } from "@/hooks/useReadings";
 
 const typeColors: Record<string, string> = {
   beer: "bg-copper/20 text-copper",
@@ -41,6 +42,8 @@ function nextAction(batch: any): string | undefined {
 
 const Index = () => {
   const { data: batches, isLoading } = useBatches();
+  const firstBatchId = batches?.[0]?.id;
+  const { data: dashboardReadings } = useReadings(firstBatchId);
 
   const upcoming = (batches ?? [])
     .flatMap((b: any) =>
@@ -193,7 +196,7 @@ const Index = () => {
 
               {/* Gravity Curve */}
               <div className="mt-6">
-                <GravityCurve />
+                <GravityCurve readings={dashboardReadings ?? undefined} />
               </div>
             </>
           )}
@@ -201,7 +204,7 @@ const Index = () => {
 
         {/* Right panel - Readings */}
         <aside className="space-y-4">
-          <ReadingsTable />
+          <ReadingsTable batchId={firstBatchId} />
 
           {/* Quick Stats */}
           <div className="glass-panel rounded-xl p-4">

@@ -39,6 +39,9 @@ export function useUpdateProfile() {
       if (error) throw error
       return data
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['profile'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['profile', user?.id] })
+      qc.invalidateQueries({ queryKey: ['profile'] })
+    },
   })
 }

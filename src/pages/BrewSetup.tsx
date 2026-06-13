@@ -13,6 +13,8 @@ import {
   Loader2,
 } from "lucide-react";
 import { useCreateBatch } from "@/hooks/useBatches";
+import { useRecipes } from "@/hooks/useRecipes";
+import { useYeastBank } from "@/hooks/useYeastBank";
 
 const steps = [
   { label: "Recipe", icon: BookOpen },
@@ -21,12 +23,12 @@ const steps = [
   { label: "Start", icon: Play },
 ];
 
-const recipes = [
-  { id: 1, name: "New England IPA", type: "beer", time: "14 days" },
-  { id: 2, name: "Ginger Kombucha", type: "kombucha", time: "14 days" },
-  { id: 3, name: "Orange Blossom Mead", type: "mead", time: "90 days" },
-  { id: 4, name: "Dry Farmhouse Cider", type: "cider", time: "28 days" },
-  { id: 5, name: "Custom Recipe", type: "ferment", time: "Variable" },
+const staticRecipes = [
+  { id: "static-1", name: "New England IPA", type: "beer", time: "14 days" },
+  { id: "static-2", name: "Ginger Kombucha", type: "kombucha", time: "14 days" },
+  { id: "static-3", name: "Orange Blossom Mead", type: "mead", time: "90 days" },
+  { id: "static-4", name: "Dry Farmhouse Cider", type: "cider", time: "28 days" },
+  { id: "custom", name: "Custom Recipe", type: "ferment", time: "Variable" },
 ];
 
 const ingredients = [
@@ -46,9 +48,33 @@ const fermenters = [
 ];
 
 const BrewSetup = () => {
+  const { data: savedRecipes } = useRecipes();
+  const { data: yeastStrains } = useYeastBank();
+
+  const recipes = [
+    ...(savedRecipes ?? []).map((r: any) => ({
+      id: r.id,
+      name: r.title,
+      type: r.type,
+      time: r.estimated_days ? `${r.estimated_days} days` : "Variable",
+    })),
+    ...staticRecipes,
+  ];
+
   const [step, setStep] = useState(0);
-  const [selectedRecipe, setSelectedRecipe] = useState<number | null>(null);
+  const [selectedRecipe, setSelectedRecipe] = useState<string | null>(null);
   const [selectedFermenter, setSelectedFermenter] = useState<number | null>(null);
+
+  const fermenters = [
+    { name: "6.5 Gal Carboy", available: true },
+    { name: "5 Gal Bucket", available: true },
+    { name: "Conical Fermenter", available: true },
+    { name: "1 Gal Jug", available: true },
+    ...(yeastStrains ?? []).map((s: any, i: number) => ({
+      name: `${s.name ?? "Unknown"} (${s.strain ?? "strain"})`,
+      available: true,
+    })),
+  ];
   const [targetTemp, setTargetTemp] = useState<string>("66");
   const [notes, setNotes] = useState("");
   const navigate = useNavigate();

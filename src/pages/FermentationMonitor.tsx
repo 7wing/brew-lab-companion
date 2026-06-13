@@ -41,6 +41,7 @@ type ReadingForm = z.infer<typeof readingSchema>;
 
 const FermentationMonitor = () => {
   const { data: batches, isLoading: batchesLoading } = useBatches();
+  const [tastingOpen, setTastingOpen] = useState(false);
   const [selectedBatchId, setSelectedBatchId] = useState<string | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -335,14 +336,14 @@ const FermentationMonitor = () => {
                 </DialogContent>
               </Dialog>
 
-              <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border/50 hover:bg-muted text-sm transition-colors">
+              <button
+                onClick={() => setTastingOpen(true)}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border/50 hover:bg-muted text-sm transition-colors"
+              >
                 <MessageSquare size={16} className="text-copper" />
                 Tasting Note
               </button>
-              <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border/50 hover:bg-muted text-sm transition-colors">
-                <Camera size={16} className="text-copper" />
-                Upload Photo
-              </button>
+              {/* Upload Photo is handled by the label above in the Visual Check section */}
             </div>
           </div>
 

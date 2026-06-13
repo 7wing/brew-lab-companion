@@ -1,61 +1,72 @@
-import { TrendingDown, TrendingUp } from "lucide-react";
+import { TrendingDown, TrendingUp } from "lucide-react"
+import { useReadings } from "@/hooks/useReadings"
 
-interface Reading {
-  date: string;
-  gravity: number;
-  temp: number;
-  ph: number;
-  trend: "up" | "down" | "stable";
+interface ReadingsTableProps {
+  batchId?: string
 }
 
-const readings: Reading[] = [
-  { date: "Mar 7", gravity: 1.048, temp: 68, ph: 4.2, trend: "down" },
-  { date: "Mar 5", gravity: 1.052, temp: 67, ph: 4.3, trend: "down" },
-  { date: "Mar 3", gravity: 1.058, temp: 69, ph: 4.5, trend: "down" },
-  { date: "Mar 1", gravity: 1.065, temp: 66, ph: 4.6, trend: "stable" },
-  { date: "Feb 28", gravity: 1.072, temp: 65, ph: 4.8, trend: "up" },
-];
+const ReadingsTable = ({ batchId }: ReadingsTableProps) => {
+  const { data: readings, isLoading } = useReadings(batchId)
 
-const ReadingsTable = () => {
   return (
     <div className="glass-panel rounded-xl overflow-hidden">
       <div className="px-4 py-3 border-b border-border/50">
         <h3 className="font-slab font-semibold text-sm">Recent Readings</h3>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm" role="table">
-          <thead>
-            <tr className="border-b border-border/30">
-              <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">Date</th>
-              <th className="text-right px-4 py-2 text-xs font-medium text-muted-foreground">SG</th>
-              <th className="text-right px-4 py-2 text-xs font-medium text-muted-foreground">°F</th>
-              <th className="text-right px-4 py-2 text-xs font-medium text-muted-foreground">pH</th>
-              <th className="text-right px-4 py-2 text-xs font-medium text-muted-foreground"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {readings.map((r, i) => (
-              <tr key={i} className="border-b border-border/20 hover:bg-muted/30 transition-colors">
-                <td className="px-4 py-2.5 font-medium">{r.date}</td>
-                <td className="px-4 py-2.5 text-right font-mono text-copper">{r.gravity.toFixed(3)}</td>
-                <td className="px-4 py-2.5 text-right">{r.temp}°</td>
-                <td className="px-4 py-2.5 text-right">{r.ph}</td>
-                <td className="px-4 py-2.5 text-right">
-                  {r.trend === "down" ? (
-                    <TrendingDown size={14} className="text-teal inline" />
-                  ) : r.trend === "up" ? (
-                    <TrendingUp size={14} className="text-copper inline" />
-                  ) : (
-                    <span className="text-muted-foreground">—</span>
-                  )}
-                </td>
+      {isLoading ? (
+        <div className="p-4 space-y-2">
+          {[1,2,3].map(i => <div key={i} className="h-8 bg-muted/50 rounded animate-pulse"/>)}
+        </div>
+      ) : (readings ?? []).length === 0 ? (
+        <p className="text-xs text-muted-foreground p-4 text-center">No readings yet.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm" role="table">
+            <thead>
+              <tr className="border-b border-border/30">
+                <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">Date</th>
+                <th className="text-right px-4 py-2 text-xs font-medium text-muted-foreground">SG</th>
+                <th className="text-right px-4 py-2 text-xs font-medium text-muted-foreground">°F</th>
+                <th className="text-right px-4 py-2 text-xs font-medium text-muted-foreground">pH</th>
+                <th className="text-right px-4 py-2 text-xs font-medium text-muted-foreground"></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {(readings ?? []).slice(0, 8).map((r, i) => {
+                const prev = readings?.[i + 1]
+                const trend = prev
+                  ? r.gravity < prev.gravity ? "down"
+                  : r.gravity > prev.gravity ? "up" : "stable"
+                  : "stable"
+                return (
+                  <tr key={r.id} className="border-b border-border/20 hover:bg-muted/30 transition-colors">
+                    <td className="px-4 py-2.5 font-medium">
+                      {new Date(r.read_at ?? "").toLocaleDateString(undefined,
+                        { month: "short", day: "numeric" })}
+                    </td>
+                    <td className="px-4 py-2.5 text-right font-mono text-copper">
+                      {Number(r.gravity).toFixed(3)}
+                    </td>
+                    <td className="px-4 py-2.5 text-right">{r.temp_f ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-right">{r.ph ?? "—"}</td>
+                    <td className="px-4 py-2.5 text-right">
+                      {trend === "down" ? (
+                        <TrendingDown size={14} className="text-teal inline" />
+                      ) : trend === "up" ? (
+                        <TrendingUp size={14} className="text-copper inline" />
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
-  );
-};
+  )
+}
 
-export default ReadingsTable;
+export default ReadingsTable

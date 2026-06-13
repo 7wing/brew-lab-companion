@@ -167,9 +167,8 @@ const BatchDetail = () => {
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => handleShare()}
-              disabled={createPost.isPending}
-              className="px-3 py-2 rounded-lg border border-border/50 text-sm hover:bg-muted transition-colors flex items-center gap-2 disabled:opacity-50"
+              onClick={() => setShareOpen(true)}
+              className="px-3 py-2 rounded-lg border border-border/50 text-sm hover:bg-muted transition-colors flex items-center gap-2"
             >
               <Share2 size={14} /> Share
             </button>
@@ -240,7 +239,7 @@ const BatchDetail = () => {
           {[
             { label: "Current SG", value: readingsLoading ? "..." : currentGravity.toFixed(3), icon: Droplets, color: "text-copper" },
             { label: "Temperature", value: readingsLoading ? "..." : (latestReading?.temp_f ? `${latestReading.temp_f}°F` : "—"), icon: Thermometer, color: "text-teal" },
-            { label: "Est. ABV", value: readingsLoading ? "..." : `${estAbV}%`, icon: FlaskConical, color: "text-gold" },
+            { label: "Est. ABV", value: readingsLoading ? "..." : `${estAbv}%`, icon: FlaskConical, color: "text-gold" },
           ].map((s, i) => (
             <div key={i} className="flex items-center gap-2 p-2 rounded-lg bg-muted/30">
               <s.icon size={16} className={s.color} />
@@ -269,10 +268,10 @@ const BatchDetail = () => {
                     <div key={i} className="flex gap-4 relative">
                       <div
                         className={`w-4 h-4 rounded-full border-2 mt-0.5 shrink-0 z-10 ${
-                          stage.done ? "bg-teal border-teal" : "bg-background border-border"
+                          stage.completed ? "bg-teal border-teal" : "bg-background border-border"
                         }`}
                       />
-                      <div className={`flex-1 ${!stage.done ? "opacity-60" : ""}`}>
+                      <div className={`flex-1 ${!stage.completed ? "opacity-60" : ""}`}>
                         <div className="flex items-center gap-3 mb-1">
                           <h3 className="text-sm font-semibold">{stage.name}</h3>
                           <span className="text-[10px] text-muted-foreground">{stage.scheduled ?? "TBD"}</span>
@@ -291,14 +290,13 @@ const BatchDetail = () => {
           <div className="glass-panel rounded-xl p-4">
             <h3 className="font-slab font-semibold text-sm mb-3">Quick Actions</h3>
             <div className="space-y-2">
-              <Dialog open={logOpen} onOpenChange={setLogOpen}>
-                <DialogTrigger asChild>
-                  <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-border/40 hover:bg-muted text-sm transition-colors">
-                    <Plus size={14} className="text-copper" />
-                    Add Reading
-                  </button>
-                </DialogTrigger>
-              </Dialog>
+              <button
+                onClick={() => setLogOpen(true)}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-border/40 hover:bg-muted text-sm transition-colors"
+              >
+                <Plus size={14} className="text-copper" />
+                Add Reading
+              </button>
 
               {/* Upload Photo */}
               <label className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-border/40 hover:bg-muted text-sm transition-colors cursor-pointer">

@@ -122,7 +122,11 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
             >
               <Search size={18} />
             </Link>
-            <button className="relative p-2 rounded-lg hover:bg-muted transition-colors" aria-label="Notifications">
+            <button
+              className="relative p-2 rounded-lg hover:bg-muted transition-colors"
+              aria-label="Notifications"
+              onClick={() => navigate('/profile')}
+            >
               <Bell size={18} />
               {unreadCount > 0 && (
                 <span className="absolute top-1 right-1 min-w-[1rem] h-4 px-1 rounded-full bg-teal text-teal-foreground text-[10px] font-bold flex items-center justify-center">
