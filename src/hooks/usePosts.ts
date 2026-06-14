@@ -12,7 +12,7 @@ export function usePosts(category?: string, page: number = 1) {
       const to = from + PAGE_SIZE - 1
       let q = supabase
         .from('posts')
-        .select('*, profiles(username, avatar_url)', { count: 'exact' })
+        .select('*, profiles!user_id(username, avatar_url)', { count: 'exact' })
         .order('created_at', { ascending: false })
         .range(from, to)
 

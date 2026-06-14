@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -41,7 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { useRecipes, useCreateRecipe, useUpdateRecipe } from "@/hooks/useRecipes";
+import { useRecipes, useCreateRecipe, useUpdateRecipe, useDeleteRecipe } from "@/hooks/useRecipes";
 
 const typeConfig: Record<string, { label: string; color: string; bg: string }> = {
   beer: { label: "Beer", color: "text-copper", bg: "bg-copper/10 border-copper/20" },
@@ -69,12 +70,14 @@ const RecipeVault = () => {
   const [activeFilter, setActiveFilter] = useState("All");
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [detailRecipe, setDetailRecipe] = useState<any | null>(null);
 
   const typeFilter = activeFilter === "All" ? undefined : activeFilter.toLowerCase();
   const { data: recipes, isLoading } = useRecipes(typeFilter, search);
 
   const createRecipe = useCreateRecipe();
   const updateRecipe = useUpdateRecipe();
+  const deleteRecipe = useDeleteRecipe();
 
   const {
     register,
@@ -316,6 +319,7 @@ const RecipeVault = () => {
             return (
               <div
                 key={recipe.id}
+                onClick={() => setDetailRecipe(recipe)}
                 className={`glass-panel rounded-xl p-4 border ${config.bg} hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group`}
               >
                 <div className="flex items-start justify-between mb-2">
@@ -395,6 +399,106 @@ const RecipeVault = () => {
           })}
         </div>
       )}
+
+      {/* Recipe Detail Sheet */}
+      <Sheet open={!!detailRecipe} onOpenChange={(open) => !open && setDetailRecipe(null)}>
+        <SheetContent side="right" className="sm:max-w-md w-full overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="font-slab">
+              {detailRecipe?.title}
+            </SheetTitle>
+          </SheetHeader>
+          {detailRecipe && (
+            <div className="mt-4 space-y-5">
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full ${typeConfig[detailRecipe.type]?.bg ?? typeConfig.ferment.bg}`}>
+                  {typeConfig[detailRecipe.type]?.label ?? "Ferment"}
+                </span>
+                {detailRecipe.abv != null && detailRecipe.abv > 0 && (
+                  <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <Percent size={12} /> {detailRecipe.abv}% ABV
+                  </span>
+                )}
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Clock size={12} /> {detailRecipe.estimated_days ?? "?"}d
+                </span>
+              </div>
+
+              {detailRecipe.description && (
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Description</h4>
+                  <p className="text-sm text-foreground leading-relaxed">{detailRecipe.description}</p>
+                </div>
+              )}
+
+              <div>
+                <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1">Difficulty</h4>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: 3 }, (_, i) => (
+                    <div
+                      key={i}
+                      className={`w-2 h-2 rounded-full ${
+                        i < (detailRecipe.difficulty ?? 1) ? "bg-copper" : "bg-muted"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {Array.isArray(detailRecipe.ingredients) && detailRecipe.ingredients.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Ingredients</h4>
+                  <ul className="space-y-1">
+                    {detailRecipe.ingredients.map((ing: any, i: number) => (
+                      <li key={i} className="text-sm text-foreground flex items-start gap-2">
+                        <span className="w-1 h-1 rounded-full bg-copper mt-1.5 shrink-0" />
+                        {typeof ing === "string" ? ing : ing.name}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {Array.isArray(detailRecipe.steps) && detailRecipe.steps.length > 0 && (
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">Steps</h4>
+                  <ol className="space-y-2">
+                    {detailRecipe.steps.map((step: any, i: number) => (
+                      <li key={i} className="text-sm text-foreground flex items-start gap-2">
+                        <span className="text-[10px] font-bold text-copper mt-0.5 shrink-0">{i + 1}.</span>
+                        {typeof step === "string" ? step : step.instruction}
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
+              <div className="pt-4 border-t border-border/50 flex gap-2">
+                <Link
+                  to="/new-brew"
+                  onClick={() => setDetailRecipe(null)}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
+                >
+                  <Plus size={16} />
+                  Start Brew
+                </Link>
+                <button
+                  onClick={() => {
+                    if (confirm("Delete this recipe?")) {
+                      deleteRecipe.mutate(detailRecipe.id, {
+                        onSuccess: () => setDetailRecipe(null),
+                      });
+                    }
+                  }}
+                  className="px-4 py-2 rounded-lg border border-destructive/30 text-destructive text-sm font-medium hover:bg-destructive/10 transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
 
       {/* Featured Lab Partner */}
       <div className="mt-8 glass-panel rounded-xl p-5 border-copper/20 flex flex-col sm:flex-row items-start sm:items-center gap-4">

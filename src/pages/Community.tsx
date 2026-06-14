@@ -42,11 +42,17 @@ const Community = () => {
   const isPostTab = !!activeTabData?.category;
   const isFollowingTab = activeTabData?.category === "following";
   const category = activeTabData?.category;
-  const { data: posts, isLoading: postsLoading } = usePosts(isPostTab && !isFollowingTab ? category : undefined);
-  const { data: followedPosts, isLoading: followedPostsLoading } = useFollowedPosts({ enabled: isPostTab && isFollowingTab });
+  const { data: postsRes, isLoading: postsLoading } = usePosts(isPostTab && !isFollowingTab ? category : undefined, page);
+  const { data: followedPosts, isLoading: followedPostsLoading } = useFollowedPosts();
 
-  const postsData = isFollowingTab ? followedPosts : posts;
+  const PAGE_SIZE = 20;
+  const paginatedFollowedPosts = followedPosts?.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) ?? [];
+  const followedTotalPages = Math.ceil((followedPosts?.length ?? 0) / PAGE_SIZE);
+
+  const postsData = isFollowingTab ? paginatedFollowedPosts : (postsRes?.posts ?? []);
   const isLoading = isFollowingTab ? followedPostsLoading : postsLoading;
+  const totalPages = isFollowingTab ? followedTotalPages : Math.ceil((postsRes?.total ?? 0) / PAGE_SIZE);
+  const hasNextPage = page < totalPages;
 
   const addComment = useAddComment();
 
@@ -75,7 +81,7 @@ const Community = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 glass-panel rounded-xl p-1 w-fit">
+      <div className="flex gap-1 mb-6 glass-panel rounded-xl p-1 w-full md:w-fit overflow-x-auto scrollbar-hide mx-auto">
         {tabs.map((tab, i) => (
           <button
             key={tab.label}
@@ -91,7 +97,7 @@ const Community = () => {
                 setSearchParams({});
               }
             }}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap shrink-0 ${
               activeTab === i
                 ? "bg-primary text-primary-foreground shadow-md"
                 : "text-muted-foreground hover:bg-muted"
@@ -106,19 +112,19 @@ const Community = () => {
       {activeTabData?.panel === "live" && <LiveTastingPanel />}
       {isPostTab && (
         isLoading ? (
-          <div className="space-y-4 max-w-3xl">
+          <div className="space-y-4 max-w-3xl mx-auto">
             {[1, 2, 3].map((i) => (
               <div key={i} className="h-40 bg-muted/50 rounded-xl animate-pulse" />
             ))}
           </div>
         ) : (postsData ?? []).length === 0 ? (
-          <div className="glass-panel rounded-xl p-8 text-center max-w-3xl">
+          <div className="glass-panel rounded-xl p-8 text-center max-w-3xl mx-auto">
             <p className="text-muted-foreground">No posts yet in this category.</p>
           </div>
         ) : (
           <>
             {/* Posts */}
-            <div className="space-y-4 max-w-3xl">
+            <div className="space-y-4 max-w-3xl mx-auto">
               {(postsData ?? []).map((post: any) => (
                 <PostCard
                   key={post.id}
@@ -136,15 +142,16 @@ const Community = () => {
             <div className="flex items-center justify-center gap-3 mt-8">
               <button
                 onClick={() => setPage(Math.max(1, page - 1))}
-                className="p-2 rounded-lg glass-panel hover:bg-muted transition-colors"
+                className="p-2 rounded-lg glass-panel hover:bg-muted transition-colors disabled:opacity-40"
                 disabled={page === 1}
               >
                 <ChevronLeft size={16} />
               </button>
-              <span className="text-sm font-medium px-3">Page {page}</span>
+              <span className="text-sm font-medium px-3">Page {page}{totalPages > 0 ? ` of ${totalPages}` : ''}</span>
               <button
                 onClick={() => setPage(page + 1)}
-                className="p-2 rounded-lg glass-panel hover:bg-muted transition-colors"
+                className="p-2 rounded-lg glass-panel hover:bg-muted transition-colors disabled:opacity-40"
+                disabled={!hasNextPage || isLoading}
               >
                 <ChevronRight size={16} />
               </button>
@@ -180,7 +187,7 @@ function PostCard({
   const toggleLike = useToggleLike(post.id);
 
   return (
-    <article className="glass-panel rounded-xl p-5 hover:shadow-lg transition-all duration-300">
+    <article className="glass-panel rounded-xl p-4 sm:p-5 hover:shadow-lg transition-all duration-300">
       <div className="flex items-center gap-3 mb-3">
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-copper/20 to-teal/20 border border-border flex items-center justify-center">
           <FlaskConical size={14} className={typeAccent[post.type] || "text-copper"} />
