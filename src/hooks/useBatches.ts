@@ -56,6 +56,40 @@ export function useCreateBatch() {
         .select()
         .single()
       if (error) throw error
+
+      // If a recipe_id was provided, copy recipe_stages to batch_stages
+      if (batch.recipe_id && data) {
+        const { data: stages, error: stagesError } = await supabase
+          .from('recipe_stages')
+          .select('*')
+          .eq('recipe_id', batch.recipe_id)
+          .order('day', { ascending: true })
+          .order('sort_order', { ascending: true })
+
+        if (stagesError) throw stagesError
+
+        if (stages && stages.length > 0) {
+          const batchStages = stages.map((stage) => {
+            const startDate = batch.start_date ? new Date(batch.start_date) : new Date()
+            const scheduledDate = new Date(startDate)
+            scheduledDate.setDate(scheduledDate.getDate() + stage.day)
+            return {
+              batch_id: data.id,
+              name: stage.action,
+              notes: stage.notes ?? null,
+              scheduled: scheduledDate.toISOString().split('T')[0],
+              sort_order: stage.sort_order ?? null,
+            }
+          })
+
+          const { error: insertError } = await supabase
+            .from('batch_stages')
+            .insert(batchStages)
+
+          if (insertError) throw insertError
+        }
+      }
+
       return data
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['batches'] }),

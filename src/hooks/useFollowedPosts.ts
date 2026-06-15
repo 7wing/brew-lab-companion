@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
+import type { SortOption } from './usePosts'
 
-export function useFollowedPosts() {
+export function useFollowedPosts(opts?: { enabled?: boolean }, sort: SortOption = 'latest') {
   const { user } = useAuth()
   return useQuery({
-    queryKey: ['followedPosts'],
+    queryKey: ['followedPosts', user?.id, sort],
     queryFn: async () => {
       if (!user) return []
 
@@ -21,15 +22,28 @@ export function useFollowedPosts() {
       const followedIds = follows.map((f) => f.followed_id)
 
       // Then fetch posts from those users
-      const { data, error } = await supabase
+      let q = supabase
         .from('posts')
         .select('*, profiles(username, avatar_url)')
         .in('user_id', followedIds)
-        .order('created_at', { ascending: false })
 
+      switch (sort) {
+        case 'most_liked':
+          q = q.order('likes', { ascending: false })
+          break
+        case 'most_commented':
+          q = q.order('created_at', { ascending: false })
+          break
+        case 'latest':
+        default:
+          q = q.order('created_at', { ascending: false })
+          break
+      }
+
+      const { data, error } = await q
       if (error) throw error
       return data ?? []
     },
-    enabled: !!user,
+    enabled: !!user && (opts?.enabled !== false),
   })
 }

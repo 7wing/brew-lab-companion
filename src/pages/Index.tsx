@@ -7,13 +7,18 @@ import {
   Beaker,
   Thermometer,
   ArrowRightLeft,
+  AlertCircle,
+  Clock,
+  CheckCircle2,
+  ChevronRight,
+  Droplets,
 } from "lucide-react";
+import SpeedFAB from "@/components/SpeedFAB";
 import { Link } from "react-router-dom";
 import BatchCard from "@/components/BatchCard";
-import ReadingsTable from "@/components/ReadingsTable";
-import GravityCurve from "@/components/GravityCurve";
+import BatchListDrawer from "@/components/BatchListDrawer";
 import { useBatches } from "@/hooks/useBatches";
-import { useReadings } from "@/hooks/useReadings";
+import { useAllReadings } from "@/hooks/useReadings";
 import {
   Sheet,
   SheetContent,
@@ -22,6 +27,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
+import { BREW } from "@/constants/copy";
+import { LIFECYCLE_ORDER, LIFECYCLE_LABELS, LifecycleStatus } from "@/lib/lifecycle";
 
 const typeColors: Record<string, string> = {
   beer: "bg-copper/20 text-copper",
@@ -43,56 +50,98 @@ function nextAction(batch: any): string | undefined {
   }>;
   const pending = stages
     .filter((s) => !s.completed)
-    .sort(
-      (a, b) =>
-        (a.scheduled ?? "").localeCompare(b.scheduled ?? "")
-    );
+    .sort((a, b) => (a.scheduled ?? "").localeCompare(b.scheduled ?? ""));
   return pending[0]?.name;
+}
+
+interface UpcomingStage {
+  name: string;
+  scheduled: string | null;
+  completed: boolean;
+  batchName: string;
+  batchType: string;
+  batchId: string;
+}
+
+function getUrgencyLevel(scheduled: string | null): "overdue" | "today" | "upcoming" {
+  if (!scheduled) return "upcoming";
+  const today = new Date().toISOString().split("T")[0];
+  if (scheduled < today) return "overdue";
+  if (scheduled === today) return "today";
+  return "upcoming";
+}
+
+function sortByUrgency(items: UpcomingStage[]): UpcomingStage[] {
+  return [...items].sort((a, b) => {
+    const urgencyOrder = { overdue: 0, today: 1, upcoming: 2 };
+    const aLevel = urgencyOrder[getUrgencyLevel(a.scheduled)];
+    const bLevel = urgencyOrder[getUrgencyLevel(b.scheduled)];
+    if (aLevel !== bLevel) return aLevel - bLevel;
+    return (a.scheduled ?? "").localeCompare(b.scheduled ?? "");
+  });
+}
+
+function formatDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
 }
 
 const Index = () => {
   const { data: batches, isLoading } = useBatches();
-  const firstBatchId = batches?.[0]?.id;
-  const { data: dashboardReadings } = useReadings(firstBatchId);
+  const { data: allReadings } = useAllReadings(5);
 
-  const upcoming = (batches ?? [])
-    .flatMap((b: any) =>
-      (b.batch_stages ?? []).map((s: any) => ({
-        ...s,
-        batchName: b.name,
-        batchType: b.type,
-      }))
+  // Build upcoming actions from all batch stages
+  const upcomingActions = sortByUrgency(
+    (batches ?? []).flatMap((b: any) =>
+      (b.batch_stages ?? [])
+        .filter((s: any) => !s.completed && s.scheduled)
+        .map((s: any) => ({
+          ...s,
+          batchName: b.name,
+          batchType: b.type,
+          batchId: b.id,
+        }))
     )
-    .filter((s: any) => !s.completed && s.scheduled)
-    .sort(
-      (a: any, b: any) =>
-        (a.scheduled ?? "").localeCompare(b.scheduled ?? "")
+  );
+
+  // Group batches by lifecycle status
+  const batchesByStage = LIFECYCLE_ORDER.reduce(
+    (acc, stage) => {
+      acc[stage] = (batches ?? []).filter(
+        (b: any) => b.status === stage
+      );
+      return acc;
+    },
+    {} as Record<LifecycleStatus, any[]>
+  );
+
+  // Check if there are any active batches
+  const hasActiveBatches = LIFECYCLE_ORDER.some(
+    (stage) => batchesByStage[stage].length > 0
+  );
+
+  // Get recent completed batches for fallback
+  const recentCompletedBatches = (batches ?? [])
+    .filter((b: any) =>
+      ["completed", "finished", "batch_shelf"].includes(b.status)
     )
-    .slice(0, 4);
+    .slice(0, 3);
 
   return (
     <div className="animate-fade-in">
-      {/* Page header */}
+      {/* Top action bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="font-slab text-2xl md:text-3xl font-bold">Brew Bench</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {isLoading
-              ? "Loading batches…"
-              : `${batches?.length ?? 0} active batch${
-                  batches?.length === 1 ? "" : "es"
-                }`}
-          </p>
-        </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Link
             to="/new-brew"
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-copper to-copper/80 text-copper-foreground font-medium text-sm shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
           >
             <Plus size={16} />
-            Start New Brew
+            {BREW.startNewBrew}
           </Link>
-          <div className="flex items-center gap-1 xl:hidden">
+          <div className="flex items-center gap-1">
             <Link
               to="/recipes"
               className="p-2.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
@@ -102,154 +151,257 @@ const Index = () => {
             </Link>
             <AbvCalculatorTrigger iconOnly />
             <TempConverterTrigger iconOnly />
-            <UpcomingSheet upcoming={upcoming} />
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[240px_1fr_320px] gap-6">
-        {/* Lab Tools Panel - left */}
-        <aside className="hidden xl:block space-y-4">
-          <div className="glass-panel rounded-xl p-4">
-            <h3 className="font-slab font-semibold text-sm mb-3 flex items-center gap-2">
-              <Beaker size={16} className="text-copper" />
-              Lab Tools
-            </h3>
-            <div className="space-y-2">
-              <Link
-                to="/recipes"
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted text-sm text-left transition-colors"
-              >
-                <Search size={14} className="text-muted-foreground" />
-                Recipe Search
-              </Link>
-              <AbvCalculatorTrigger />
-              <TempConverterTrigger />
-            </div>
-          </div>
-
-          {/* Milestones */}
-          <div className="glass-panel rounded-xl p-4">
-            <h3 className="font-slab font-semibold text-sm mb-3 flex items-center gap-2">
-              <Calendar size={16} className="text-teal" />
-              Upcoming
-            </h3>
-            <div className="space-y-3">
-              {upcoming.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No upcoming actions.</p>
-              ) : (
-                upcoming.map((m: any, i: number) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <div
-                      className={`w-2 h-2 mt-1.5 rounded-full ${
-                        typeColors[m.batchType]?.split(" ")[0] || "bg-muted"
-                      }`}
-                    />
-                    <div>
-                      <p className="text-xs font-semibold">{m.scheduled}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {m.name} — {m.batchName}
-                      </p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Sponsor */}
-          <div className="glass-panel rounded-xl p-4 border-copper/20">
-            <p className="text-[10px] uppercase tracking-widest text-copper font-semibold mb-2">
-              Featured Lab Partner
-            </p>
-            <p className="text-sm font-medium">BrewCraft Yeasts</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Premium Belgian & Wild strains for craft fermentation
-            </p>
-          </div>
-        </aside>
-
-        {/* Central batch shelf */}
-        <section>
-          <h2 className="font-slab text-lg font-semibold mb-4">Active Fermentations</h2>
-
-          {isLoading ? (
-            <div className="flex gap-4 overflow-x-auto pb-4">
-              {[1, 2, 3].map((i) => (
-                <div
+      {/* Upcoming Actions Strip */}
+      {upcomingActions.length > 0 && (
+        <div className="glass-panel rounded-xl p-4 mb-6">
+          <h2 className="font-slab font-semibold text-sm mb-3 flex items-center gap-2">
+            <Calendar size={16} className="text-teal" />
+            {BREW.upcomingActions}
+          </h2>
+          <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
+            {upcomingActions.slice(0, 6).map((action, i) => {
+              const urgency = getUrgencyLevel(action.scheduled);
+              return (
+                <Link
                   key={i}
-                  className="min-w-[260px] h-48 bg-muted/50 rounded-xl animate-pulse"
-                />
+                  to={`/batch/${action.batchId}`}
+                  className={`flex-shrink-0 flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all hover:-translate-y-0.5 ${
+                    urgency === "overdue"
+                      ? "bg-red-500/10 text-red-400 border border-red-500/20"
+                      : urgency === "today"
+                      ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                      : "bg-muted/50 text-muted-foreground border border-border/50"
+                  }`}
+                >
+                  {urgency === "overdue" ? (
+                    <AlertCircle size={14} className="text-red-400" />
+                  ) : urgency === "today" ? (
+                    <Clock size={14} className="text-amber-400" />
+                  ) : (
+                    <CheckCircle2 size={14} className="text-teal" />
+                  )}
+                  <span>{action.name}</span>
+                  <span className="text-muted-foreground/70">·</span>
+                  <span className="font-mono">{action.batchName}</span>
+                  {action.scheduled && (
+                    <>
+                      <span className="text-muted-foreground/70">·</span>
+                      <span className="font-mono">
+                        {formatDate(action.scheduled)}
+                      </span>
+                    </>
+                  )}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="flex gap-6">
+        {/* Batch List Drawer - desktop sidebar / mobile sheet */}
+        <BatchListDrawer batches={batches ?? []} />
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col gap-6">
+          {/* Main Area - Lifecycle Sections */}
+          <section className="space-y-8">
+          {isLoading ? (
+            <>
+              {LIFECYCLE_ORDER.map((stage) => (
+                <div key={stage}>
+                  <div className="h-6 w-32 bg-muted/50 rounded animate-pulse mb-4" />
+                  <div className="flex gap-4 overflow-x-auto">
+                    {[1, 2].map((i) => (
+                      <div
+                        key={i}
+                        className="min-w-[260px] h-48 bg-muted/30 rounded-xl animate-pulse"
+                      />
+                    ))}
+                  </div>
+                </div>
               ))}
-            </div>
-          ) : (batches ?? []).length === 0 ? (
+            </>
+          ) : !hasActiveBatches ? (
+            /* Fallback: No active batches */
             <div className="glass-panel rounded-xl p-8 text-center">
-              <p className="text-muted-foreground mb-4">
-                No active fermentations yet.
-              </p>
+              <div className="mb-6">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-muted/50 flex items-center justify-center">
+                  <Beaker size={32} className="text-muted-foreground" />
+                </div>
+                <h2 className="font-slab text-xl font-semibold mb-2">
+                  Nothing brewing right now
+                </h2>
+                <p className="text-muted-foreground text-sm">
+                  Start a new batch to begin your fermentation journey.
+                </p>
+              </div>
+
+              {recentCompletedBatches.length > 0 && (
+                <div className="mt-8 text-left">
+                  <h3 className="font-slab font-semibold text-sm mb-4 text-muted-foreground">
+                    Recently Completed
+                  </h3>
+                  <div className="space-y-2">
+                    {recentCompletedBatches.map((batch: any) => (
+                      <Link
+                        key={batch.id}
+                        to={`/batch/${batch.id}`}
+                        className="flex items-center gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors"
+                      >
+                        <div className="w-8 h-8 rounded-lg bg-copper/10 flex items-center justify-center">
+                          <Droplets size={16} className="text-copper" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            {batch.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {batch.type} · {batch.og?.toFixed(3) ?? "—"} OG
+                          </p>
+                        </div>
+                        <ChevronRight
+                          size={16}
+                          className="text-muted-foreground"
+                        />
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <Link
                 to="/new-brew"
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-copper to-copper/80 text-copper-foreground font-medium text-sm shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
+                className="inline-flex items-center gap-2 px-6 py-3 mt-6 rounded-xl bg-gradient-to-r from-copper to-copper/80 text-copper-foreground font-medium text-sm shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
               >
                 <Plus size={16} />
-                Start New Brew
+                {BREW.startNewBrew}
               </Link>
             </div>
           ) : (
-            <>
-              <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory xl:grid xl:grid-cols-2 2xl:grid-cols-3 xl:overflow-visible">
-                {(batches ?? []).map((batch: any) => (
-                  <div key={batch.id} className="snap-start shrink-0 xl:shrink">
-                    <BatchCard
-                      id={batch.id}
-                      name={batch.name}
-                      type={batch.type}
-                      gravity={batch.og ?? 1.0}
-                      targetGravity={batch.target_fg ?? 1.0}
-                      daysElapsed={daysSince(batch.start_date)}
-                      totalDays={batch.target_days}
-                      nextAction={nextAction(batch)}
-                      style={batch.recipe?.title ?? undefined}
-                    />
-                  </div>
-                ))}
-              </div>
+            /* Lifecycle Sections */
+            LIFECYCLE_ORDER.map((stage) => {
+              const stageBatches = batchesByStage[stage];
+              if (stageBatches.length === 0) return null;
 
-              {/* Gravity Curve */}
-              <div className="mt-6">
-                <GravityCurve readings={dashboardReadings ?? undefined} />
-              </div>
-            </>
+              return (
+                <div key={stage}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="font-slab text-lg font-semibold">
+                      {LIFECYCLE_LABELS[stage]}
+                    </h2>
+                    {stageBatches.length > 2 && (
+                      <Link
+                        to={`/?stage=${stage}`}
+                        className="text-sm text-copper hover:text-copper/80 transition-colors flex items-center gap-1"
+                      >
+                        View all {stageBatches.length} {LIFECYCLE_LABELS[stage].toLowerCase()}
+                        <ChevronRight size={16} />
+                      </Link>
+                    )}
+                  </div>
+                  <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory xl:grid xl:grid-cols-2 xl:overflow-visible">
+                    {stageBatches.slice(0, 2).map((batch: any) => (
+                      <div key={batch.id} className="snap-start shrink-0 xl:shrink">
+                        <BatchCard
+                          id={batch.id}
+                          name={batch.name}
+                          type={batch.type}
+                          gravity={batch.og ?? 1.0}
+                          targetGravity={batch.target_fg ?? 1.0}
+                          daysElapsed={daysSince(batch.start_date)}
+                          totalDays={batch.target_days}
+                          nextAction={nextAction(batch)}
+                          style={batch.recipe?.title ?? undefined}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })
           )}
         </section>
 
-        {/* Right panel - Readings */}
-        <aside className="space-y-4">
-          <ReadingsTable batchId={firstBatchId} />
-
-          {/* Quick Stats */}
-          <div className="glass-panel rounded-xl p-4">
-            <h3 className="font-slab font-semibold text-sm mb-3">Lab Stats</h3>
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { label: "Active", value: String(batches?.length ?? 0), accent: "text-copper" },
-                { label: "Completed", value: "—", accent: "text-teal" },
-                { label: "This Month", value: "—", accent: "text-gold" },
-                { label: "Avg Days", value: "—", accent: "text-muted-foreground" },
-              ].map((s, i) => (
-                <div key={i} className="text-center p-2 rounded-lg bg-muted/30">
-                  <p className={`text-xl font-mono font-bold ${s.accent}`}>
-                    {s.value}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                    {s.label}
-                  </p>
-                </div>
-              ))}
+        {/* Right Panel - Recent Readings */}
+        <aside className="w-full xl:w-[320px] shrink-0 space-y-4">
+          <div className="glass-panel rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-border/50">
+              <h3 className="font-slab font-semibold text-sm flex items-center gap-2">
+                <Droplets size={16} className="text-copper" />
+                {BREW.recentReadings}
+              </h3>
             </div>
+            {isLoading ? (
+              <div className="p-4 space-y-2">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="h-10 bg-muted/50 rounded animate-pulse" />
+                ))}
+              </div>
+            ) : (allReadings ?? []).length === 0 ? (
+              <p className="text-xs text-muted-foreground p-4 text-center">
+                No readings recorded yet.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm" role="table">
+                  <thead>
+                    <tr className="border-b border-border/30">
+                      <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">
+                        Date
+                      </th>
+                      <th className="text-right px-4 py-2 text-xs font-medium text-muted-foreground">
+                        SG
+                      </th>
+                      <th className="text-right px-4 py-2 text-xs font-medium text-muted-foreground">
+                        °F
+                      </th>
+                      <th className="text-right px-4 py-2 text-xs font-medium text-muted-foreground">
+                        pH
+                      </th>
+                      <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">
+                        Batch
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(allReadings ?? []).map((r: any) => (
+                      <tr
+                        key={r.id}
+                        className="border-b border-border/20 hover:bg-muted/30 transition-colors"
+                      >
+                        <td className="px-4 py-2.5 font-medium">
+                          {r.read_at
+                            ? formatDate(r.read_at)
+                            : "—"}
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-mono text-copper">
+                          {Number(r.gravity).toFixed(3)}
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          {r.temp_f ?? "—"}
+                        </td>
+                        <td className="px-4 py-2.5 text-right">{r.ph ?? "—"}</td>
+                        <td className="px-4 py-2.5 text-xs text-muted-foreground max-w-[80px] truncate">
+                          {r.batch?.name ?? "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </aside>
+        </div>
       </div>
+
+      {/* Speed FAB - Fixed bottom right */}
+      <SpeedFAB />
     </div>
   );
 };
@@ -326,53 +478,6 @@ function AbvCalculatorTrigger({ iconOnly = false }: { iconOnly?: boolean }) {
           <p className="text-[10px] text-muted-foreground">
             Formula: (OG − FG) × 131.25
           </p>
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-}
-
-function UpcomingSheet({ upcoming }: { upcoming: any[] }) {
-  return (
-    <Sheet>
-      <SheetTrigger asChild>
-        <button
-          className="p-2.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground relative"
-          aria-label="Upcoming Actions"
-        >
-          <Calendar size={18} />
-          {upcoming.length > 0 && (
-            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-teal" />
-          )}
-        </button>
-      </SheetTrigger>
-      <SheetContent side="right" className="sm:max-w-sm">
-        <SheetHeader>
-          <SheetTitle className="font-slab flex items-center gap-2">
-            <Calendar size={18} className="text-teal" />
-            Upcoming
-          </SheetTitle>
-        </SheetHeader>
-        <div className="mt-6 space-y-3">
-          {upcoming.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No upcoming actions.</p>
-          ) : (
-            upcoming.map((m: any, i: number) => (
-              <div key={i} className="flex items-start gap-3">
-                <div
-                  className={`w-2 h-2 mt-1.5 rounded-full ${
-                    typeColors[m.batchType]?.split(" ")[0] || "bg-muted"
-                  }`}
-                />
-                <div>
-                  <p className="text-xs font-semibold">{m.scheduled}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {m.name} — {m.batchName}
-                  </p>
-                </div>
-              </div>
-            ))
-          )}
         </div>
       </SheetContent>
     </Sheet>

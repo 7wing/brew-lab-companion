@@ -118,10 +118,11 @@ export function useFollow() {
     },
     onSuccess: (_data, followedId) => {
       qc.invalidateQueries({ queryKey: ['isFollowing', followedId] })
-      qc.invalidateQueries({ queryKey: ['followerCount'] })
-      qc.invalidateQueries({ queryKey: ['followingCount'] })
-      qc.invalidateQueries({ queryKey: ['followers'] })
-      qc.invalidateQueries({ queryKey: ['following'] })
+      qc.invalidateQueries({ queryKey: ['followerCount', followedId] })
+      qc.invalidateQueries({ queryKey: ['followingCount', user.id] })
+      qc.invalidateQueries({ queryKey: ['followers', followedId] })
+      qc.invalidateQueries({ queryKey: ['following', user.id] })
+      qc.invalidateQueries({ queryKey: ['followedPosts', user.id] })
     },
   })
 }
@@ -141,10 +142,11 @@ export function useUnfollow() {
     },
     onSuccess: (_data, followedId) => {
       qc.invalidateQueries({ queryKey: ['isFollowing', followedId] })
-      qc.invalidateQueries({ queryKey: ['followerCount'] })
-      qc.invalidateQueries({ queryKey: ['followingCount'] })
-      qc.invalidateQueries({ queryKey: ['followers'] })
-      qc.invalidateQueries({ queryKey: ['following'] })
+      qc.invalidateQueries({ queryKey: ['followerCount', followedId] })
+      qc.invalidateQueries({ queryKey: ['followingCount', user.id] })
+      qc.invalidateQueries({ queryKey: ['followers', followedId] })
+      qc.invalidateQueries({ queryKey: ['following', user.id] })
+      qc.invalidateQueries({ queryKey: ['followedPosts', user.id] })
     },
   })
 }

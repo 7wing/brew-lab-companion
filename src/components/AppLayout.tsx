@@ -10,7 +10,7 @@ import {
   Bell,
 } from "lucide-react";
 import BubbleBackground from "./BubbleBackground";
-import { useNotifications, useMarkNotificationAsRead } from "@/hooks/useNotifications";
+import { useNotifications, useMarkNotificationAsRead, useMarkAllNotificationsAsRead } from "@/hooks/useNotifications";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
 import { useQueryClient } from "@tanstack/react-query";
@@ -40,6 +40,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const markAsRead = useMarkNotificationAsRead();
+  const markAllAsRead = useMarkAllNotificationsAsRead();
 
   const { data: notifications } = useNotifications();
   const unreadCount = notifications?.length ?? 0;
@@ -127,6 +128,15 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
+                {unreadCount > 0 && (
+                  <button
+                    className="w-full px-3 py-2 text-left text-sm font-medium text-primary hover:bg-muted transition-colors border-b border-border/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={() => markAllAsRead.mutate()}
+                    disabled={markAllAsRead.isPending}
+                  >
+                    Mark all as read
+                  </button>
+                )}
                 {notifications && notifications.length > 0 ? (
                   notifications.map((n: any) => (
                     <DropdownMenuItem
