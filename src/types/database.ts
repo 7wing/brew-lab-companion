@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      badges: {
+        Row: {
+          created_at: string | null
+          criteria_key: string
+          description: string | null
+          icon_url: string | null
+          id: string
+          name: string
+          target_value: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          criteria_key: string
+          description?: string | null
+          icon_url?: string | null
+          id?: string
+          name: string
+          target_value?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          criteria_key?: string
+          description?: string | null
+          icon_url?: string | null
+          id?: string
+          name?: string
+          target_value?: number | null
+        }
+        Relationships: []
+      }
       batch_stages: {
         Row: {
           batch_id: string
@@ -54,13 +84,21 @@ export type Database = {
       }
       batches: {
         Row: {
+          batch_number: number | null
+          batch_size: number | null
+          brew_date: string | null
+          completed_date: string | null
           created_at: string | null
           fermenter: string | null
+          finished_at: string | null
           id: string
           name: string
           notes: string | null
           og: number | null
+          packaged_date: string | null
           recipe_id: string | null
+          srm: number | null
+          star_rating: number | null
           start_date: string
           status: Database["public"]["Enums"]["batch_status"] | null
           target_days: number
@@ -69,15 +107,25 @@ export type Database = {
           type: Database["public"]["Enums"]["ferment_type"]
           updated_at: string | null
           user_id: string
+          volume: number | null
+          yeast_strain: string | null
         }
         Insert: {
+          batch_number?: number | null
+          batch_size?: number | null
+          brew_date?: string | null
+          completed_date?: string | null
           created_at?: string | null
           fermenter?: string | null
+          finished_at?: string | null
           id?: string
           name: string
           notes?: string | null
           og?: number | null
+          packaged_date?: string | null
           recipe_id?: string | null
+          srm?: number | null
+          star_rating?: number | null
           start_date?: string
           status?: Database["public"]["Enums"]["batch_status"] | null
           target_days?: number
@@ -86,15 +134,25 @@ export type Database = {
           type: Database["public"]["Enums"]["ferment_type"]
           updated_at?: string | null
           user_id: string
+          volume?: number | null
+          yeast_strain?: string | null
         }
         Update: {
+          batch_number?: number | null
+          batch_size?: number | null
+          brew_date?: string | null
+          completed_date?: string | null
           created_at?: string | null
           fermenter?: string | null
+          finished_at?: string | null
           id?: string
           name?: string
           notes?: string | null
           og?: number | null
+          packaged_date?: string | null
           recipe_id?: string | null
+          srm?: number | null
+          star_rating?: number | null
           start_date?: string
           status?: Database["public"]["Enums"]["batch_status"] | null
           target_days?: number
@@ -103,6 +161,8 @@ export type Database = {
           type?: Database["public"]["Enums"]["ferment_type"]
           updated_at?: string | null
           user_id?: string
+          volume?: number | null
+          yeast_strain?: string | null
         }
         Relationships: [
           {
@@ -126,18 +186,27 @@ export type Database = {
           batch_id: string | null
           challenge_id: string
           joined_at: string | null
+          rating: number | null
+          submission_post_id: string | null
+          submitted_at: string | null
           user_id: string
         }
         Insert: {
           batch_id?: string | null
           challenge_id: string
           joined_at?: string | null
+          rating?: number | null
+          submission_post_id?: string | null
+          submitted_at?: string | null
           user_id: string
         }
         Update: {
           batch_id?: string | null
           challenge_id?: string
           joined_at?: string | null
+          rating?: number | null
+          submission_post_id?: string | null
+          submitted_at?: string | null
           user_id?: string
         }
         Relationships: [
@@ -156,6 +225,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "challenge_entries_submission_post_id_fkey"
+            columns: ["submission_post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "challenge_entries_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -166,41 +242,74 @@ export type Database = {
       }
       challenges: {
         Row: {
+          challenge_type: Database["public"]["Enums"]["challenge_type"] | null
           created_at: string | null
+          created_by: string | null
           description: string | null
           end_date: string | null
           id: string
+          image_url: string | null
           is_active: boolean | null
+          max_participants: number | null
+          moderation_status:
+            | Database["public"]["Enums"]["moderation_status"]
+            | null
+          rules: string | null
           start_date: string | null
           title: string
           type: Database["public"]["Enums"]["ferment_type"] | null
         }
         Insert: {
+          challenge_type?: Database["public"]["Enums"]["challenge_type"] | null
           created_at?: string | null
+          created_by?: string | null
           description?: string | null
           end_date?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean | null
+          max_participants?: number | null
+          moderation_status?:
+            | Database["public"]["Enums"]["moderation_status"]
+            | null
+          rules?: string | null
           start_date?: string | null
           title: string
           type?: Database["public"]["Enums"]["ferment_type"] | null
         }
         Update: {
+          challenge_type?: Database["public"]["Enums"]["challenge_type"] | null
           created_at?: string | null
+          created_by?: string | null
           description?: string | null
           end_date?: string | null
           id?: string
+          image_url?: string | null
           is_active?: boolean | null
+          max_participants?: number | null
+          moderation_status?:
+            | Database["public"]["Enums"]["moderation_status"]
+            | null
+          rules?: string | null
           start_date?: string | null
           title?: string
           type?: Database["public"]["Enums"]["ferment_type"] | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "challenges_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       comments: {
         Row: {
           content: string
           created_at: string | null
+          edited_at: string | null
           id: string
           post_id: string
           user_id: string
@@ -208,6 +317,7 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string | null
+          edited_at?: string | null
           id?: string
           post_id: string
           user_id: string
@@ -215,6 +325,7 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string | null
+          edited_at?: string | null
           id?: string
           post_id?: string
           user_id?: string
@@ -232,6 +343,41 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      featured_recipes: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          featured_type: string
+          id: string
+          recipe_id: string
+          sort_order: number | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          featured_type?: string
+          id?: string
+          recipe_id: string
+          sort_order?: number | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          featured_type?: string
+          id?: string
+          recipe_id?: string
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "featured_recipes_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
             referencedColumns: ["id"]
           },
         ]
@@ -266,6 +412,68 @@ export type Database = {
           {
             foreignKeyName: "follows_follower_id_fkey"
             columns: ["follower_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lab_partners: {
+        Row: {
+          active: boolean | null
+          created_at: string | null
+          id: string
+          logo_url: string | null
+          name: string
+          slot: number | null
+        }
+        Insert: {
+          active?: boolean | null
+          created_at?: string | null
+          id?: string
+          logo_url?: string | null
+          name: string
+          slot?: number | null
+        }
+        Update: {
+          active?: boolean | null
+          created_at?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          slot?: number | null
+        }
+        Relationships: []
+      }
+      notification_settings: {
+        Row: {
+          created_at: string | null
+          email_enabled: boolean | null
+          id: string
+          in_app_enabled: boolean | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email_enabled?: boolean | null
+          id?: string
+          in_app_enabled?: boolean | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email_enabled?: boolean | null
+          id?: string
+          in_app_enabled?: boolean | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_settings_user_id_fkey"
+            columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -345,39 +553,95 @@ export type Database = {
       }
       posts: {
         Row: {
+          appearance: string | null
+          aroma: string | null
+          batch_stage: string | null
           category: Database["public"]["Enums"]["post_category"]
+          challenge_id: string | null
           content: string
           created_at: string | null
+          current_ph: number | null
+          current_sg: number | null
+          current_temp: number | null
+          edited_at: string | null
+          flavor: string | null
           fts: unknown
           id: string
           likes: number | null
+          mouthfeel: string | null
+          overall: string | null
+          photos: Json | null
+          recipe_id: string | null
+          star_rating: number | null
           title: string
           type: Database["public"]["Enums"]["ferment_type"] | null
           user_id: string
         }
         Insert: {
+          appearance?: string | null
+          aroma?: string | null
+          batch_stage?: string | null
           category: Database["public"]["Enums"]["post_category"]
+          challenge_id?: string | null
           content: string
           created_at?: string | null
+          current_ph?: number | null
+          current_sg?: number | null
+          current_temp?: number | null
+          edited_at?: string | null
+          flavor?: string | null
           fts?: unknown
           id?: string
           likes?: number | null
+          mouthfeel?: string | null
+          overall?: string | null
+          photos?: Json | null
+          recipe_id?: string | null
+          star_rating?: number | null
           title: string
           type?: Database["public"]["Enums"]["ferment_type"] | null
           user_id: string
         }
         Update: {
+          appearance?: string | null
+          aroma?: string | null
+          batch_stage?: string | null
           category?: Database["public"]["Enums"]["post_category"]
+          challenge_id?: string | null
           content?: string
           created_at?: string | null
+          current_ph?: number | null
+          current_sg?: number | null
+          current_temp?: number | null
+          edited_at?: string | null
+          flavor?: string | null
           fts?: unknown
           id?: string
           likes?: number | null
+          mouthfeel?: string | null
+          overall?: string | null
+          photos?: Json | null
+          recipe_id?: string | null
+          star_rating?: number | null
           title?: string
           type?: Database["public"]["Enums"]["ferment_type"] | null
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "posts_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "posts_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "posts_user_id_fkey"
             columns: ["user_id"]
@@ -391,28 +655,52 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          brew_types: Database["public"]["Enums"]["ferment_type"][] | null
+          brewing_since: string | null
+          cover_photo_url: string | null
           created_at: string | null
           display_name: string | null
+          experience_level: string | null
+          favourite_styles: string | null
           id: string
           location: string | null
+          onboarding_completed: boolean | null
+          role: Database["public"]["Enums"]["user_role"] | null
+          updated_at: string | null
           username: string
         }
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          brew_types?: Database["public"]["Enums"]["ferment_type"][] | null
+          brewing_since?: string | null
+          cover_photo_url?: string | null
           created_at?: string | null
           display_name?: string | null
+          experience_level?: string | null
+          favourite_styles?: string | null
           id: string
           location?: string | null
+          onboarding_completed?: boolean | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          updated_at?: string | null
           username: string
         }
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          brew_types?: Database["public"]["Enums"]["ferment_type"][] | null
+          brewing_since?: string | null
+          cover_photo_url?: string | null
           created_at?: string | null
           display_name?: string | null
+          experience_level?: string | null
+          favourite_styles?: string | null
           id?: string
           location?: string | null
+          onboarding_completed?: boolean | null
+          role?: Database["public"]["Enums"]["user_role"] | null
+          updated_at?: string | null
           username?: string
         }
         Relationships: []
@@ -468,19 +756,119 @@ export type Database = {
           },
         ]
       }
+      recipe_ratings: {
+        Row: {
+          batch_id: string | null
+          created_at: string | null
+          id: string
+          rating: number
+          recipe_id: string
+          user_id: string
+        }
+        Insert: {
+          batch_id?: string | null
+          created_at?: string | null
+          id?: string
+          rating: number
+          recipe_id: string
+          user_id: string
+        }
+        Update: {
+          batch_id?: string | null
+          created_at?: string | null
+          id?: string
+          rating?: number
+          recipe_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_ratings_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_ratings_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_ratings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipe_stages: {
+        Row: {
+          action: string
+          created_at: string | null
+          day: number
+          id: string
+          notes: string | null
+          recipe_id: string
+          sort_order: number | null
+        }
+        Insert: {
+          action: string
+          created_at?: string | null
+          day: number
+          id?: string
+          notes?: string | null
+          recipe_id: string
+          sort_order?: number | null
+        }
+        Update: {
+          action?: string
+          created_at?: string | null
+          day?: number
+          id?: string
+          notes?: string | null
+          recipe_id?: string
+          sort_order?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_stages_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recipes: {
         Row: {
           abv: number | null
+          batch_size: number | null
           created_at: string | null
+          curated: boolean | null
           description: string | null
           difficulty: number | null
+          edited_at: string | null
           estimated_days: number | null
+          forked_from: string | null
           fts: unknown
+          ibu: number | null
           id: string
           ingredients: Json | null
           is_public: boolean | null
+          moderation_status:
+            | Database["public"]["Enums"]["moderation_status"]
+            | null
+          rejection_reason: string | null
+          srm: number | null
           starred: boolean | null
           steps: Json | null
+          style: string | null
+          target_fg: number | null
+          target_og: number | null
           title: string
           type: Database["public"]["Enums"]["ferment_type"]
           updated_at: string | null
@@ -488,16 +876,29 @@ export type Database = {
         }
         Insert: {
           abv?: number | null
+          batch_size?: number | null
           created_at?: string | null
+          curated?: boolean | null
           description?: string | null
           difficulty?: number | null
+          edited_at?: string | null
           estimated_days?: number | null
+          forked_from?: string | null
           fts?: unknown
+          ibu?: number | null
           id?: string
           ingredients?: Json | null
           is_public?: boolean | null
+          moderation_status?:
+            | Database["public"]["Enums"]["moderation_status"]
+            | null
+          rejection_reason?: string | null
+          srm?: number | null
           starred?: boolean | null
           steps?: Json | null
+          style?: string | null
+          target_fg?: number | null
+          target_og?: number | null
           title: string
           type: Database["public"]["Enums"]["ferment_type"]
           updated_at?: string | null
@@ -505,16 +906,29 @@ export type Database = {
         }
         Update: {
           abv?: number | null
+          batch_size?: number | null
           created_at?: string | null
+          curated?: boolean | null
           description?: string | null
           difficulty?: number | null
+          edited_at?: string | null
           estimated_days?: number | null
+          forked_from?: string | null
           fts?: unknown
+          ibu?: number | null
           id?: string
           ingredients?: Json | null
           is_public?: boolean | null
+          moderation_status?:
+            | Database["public"]["Enums"]["moderation_status"]
+            | null
+          rejection_reason?: string | null
+          srm?: number | null
           starred?: boolean | null
           steps?: Json | null
+          style?: string | null
+          target_fg?: number | null
+          target_og?: number | null
           title?: string
           type?: Database["public"]["Enums"]["ferment_type"]
           updated_at?: string | null
@@ -522,8 +936,53 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "recipes_forked_from_fkey"
+            columns: ["forked_from"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "recipes_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reported_content: {
+        Row: {
+          content_id: string
+          content_type: string
+          created_at: string | null
+          id: string
+          reason: string
+          reporter_id: string
+          status: string | null
+        }
+        Insert: {
+          content_id: string
+          content_type: string
+          created_at?: string | null
+          id?: string
+          reason: string
+          reporter_id: string
+          status?: string | null
+        }
+        Update: {
+          content_id?: string
+          content_type?: string
+          created_at?: string | null
+          id?: string
+          reason?: string
+          reporter_id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reported_content_reporter_id_fkey"
+            columns: ["reporter_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -665,30 +1124,139 @@ export type Database = {
           },
         ]
       }
-      yeast_bank: {
+      user_badges: {
         Row: {
-          created_at: string | null
-          id: string
-          name: string
-          notes: string | null
-          strain_code: string | null
+          awarded_at: string | null
+          badge_id: string
           user_id: string
         }
         Insert: {
-          created_at?: string | null
-          id?: string
-          name: string
-          notes?: string | null
-          strain_code?: string | null
+          awarded_at?: string | null
+          badge_id: string
           user_id: string
         }
         Update: {
+          awarded_at?: string | null
+          badge_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_badges_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "badges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_badges_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_privacy: {
+        Row: {
+          batch_shelf_visibility: string | null
+          profile_visibility: string | null
+          user_id: string
+          yeast_bank_visibility: string | null
+        }
+        Insert: {
+          batch_shelf_visibility?: string | null
+          profile_visibility?: string | null
+          user_id: string
+          yeast_bank_visibility?: string | null
+        }
+        Update: {
+          batch_shelf_visibility?: string | null
+          profile_visibility?: string | null
+          user_id?: string
+          yeast_bank_visibility?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_privacy_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_settings: {
+        Row: {
+          gravity_unit: string | null
+          temperature_unit: string | null
+          theme: string | null
+          user_id: string
+          volume_unit: string | null
+        }
+        Insert: {
+          gravity_unit?: string | null
+          temperature_unit?: string | null
+          theme?: string | null
+          user_id: string
+          volume_unit?: string | null
+        }
+        Update: {
+          gravity_unit?: string | null
+          temperature_unit?: string | null
+          theme?: string | null
+          user_id?: string
+          volume_unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      yeast_bank: {
+        Row: {
+          created_at: string | null
+          generation: number | null
+          id: string
+          name: string
+          notes: string | null
+          source: string | null
+          storage_date: string | null
+          strain_code: string | null
+          updated_at: string | null
+          user_id: string
+          viability_notes: string | null
+        }
+        Insert: {
           created_at?: string | null
+          generation?: number | null
+          id?: string
+          name: string
+          notes?: string | null
+          source?: string | null
+          storage_date?: string | null
+          strain_code?: string | null
+          updated_at?: string | null
+          user_id: string
+          viability_notes?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          generation?: number | null
           id?: string
           name?: string
           notes?: string | null
+          source?: string | null
+          storage_date?: string | null
           strain_code?: string | null
+          updated_at?: string | null
           user_id?: string
+          viability_notes?: string | null
         }
         Relationships: [
           {
@@ -717,6 +1285,12 @@ export type Database = {
         | "conditioning"
         | "completed"
         | "abandoned"
+        | "brew_day"
+        | "fermenting"
+        | "packaging"
+        | "batch_shelf"
+        | "finished"
+      challenge_type: "official" | "community"
       ferment_type:
         | "beer"
         | "kombucha"
@@ -724,7 +1298,10 @@ export type Database = {
         | "cider"
         | "sourdough"
         | "ferment"
-      post_category: "recipe" | "troubleshooting" | "tasting"
+        | "wine"
+      moderation_status: "pending" | "approved" | "rejected" | "needs_edits"
+      post_category: "recipe" | "troubleshooting" | "tasting" | "brew_log"
+      user_role: "brewer" | "moderator" | "super_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -858,7 +1435,13 @@ export const Constants = {
         "conditioning",
         "completed",
         "abandoned",
+        "brew_day",
+        "fermenting",
+        "packaging",
+        "batch_shelf",
+        "finished",
       ],
+      challenge_type: ["official", "community"],
       ferment_type: [
         "beer",
         "kombucha",
@@ -866,8 +1449,11 @@ export const Constants = {
         "cider",
         "sourdough",
         "ferment",
+        "wine",
       ],
-      post_category: ["recipe", "troubleshooting", "tasting"],
+      moderation_status: ["pending", "approved", "rejected", "needs_edits"],
+      post_category: ["recipe", "troubleshooting", "tasting", "brew_log"],
+      user_role: ["brewer", "moderator", "super_admin"],
     },
   },
 } as const

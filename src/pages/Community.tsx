@@ -1,19 +1,21 @@
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { MessageSquare, Heart, Share2, ChevronLeft, ChevronRight, FlaskConical, Send, Loader2 } from "lucide-react";
 import { usePosts, useToggleLike, useComments, useAddComment } from "@/hooks/usePosts";
 import { useFollowedPosts } from "@/hooks/useFollowedPosts";
 import ChallengesPanel from "@/components/ChallengesPanel";
-import LiveTastingPanel from "@/components/LiveTastingPanel";
+import PostComposerFAB from "@/components/PostComposerFAB";
+import { copy } from "@/constants/copy";
 
-const tabs = [
-  { label: "Recipes Shared", category: "recipe" },
-  { label: "Troubleshooting", category: "troubleshooting" },
-  { label: "Tastings", category: "tasting" },
-  { label: "Following", category: "following" },
-  { label: "Challenges", panel: "challenges" },
-  { label: "Live", panel: "live" },
-];
+type SortOption = "latest" | "most_liked" | "most_commented";
+
+// Tab categories that map to post_category DB field
+const POST_TABS = [
+  { label: copy.community.brewLogs, category: "brew_log" },
+  { label: copy.community.troubleshooting, category: "troubleshooting" },
+  { label: copy.community.tastings, category: "tasting" },
+  { label: copy.community.challenges, panel: "challenges" },
+] as const;
 
 const typeAccent: Record<string, string> = {
   beer: "text-copper",
@@ -29,29 +31,37 @@ const Community = () => {
   const [activeTab, setActiveTab] = useState(() => {
     const tab = searchParams.get("tab");
     if (tab) {
-      const idx = tabs.findIndex((t) => t.panel === tab || t.category === tab);
+      const idx = POST_TABS.findIndex((t) => t.panel === tab || t.category === tab);
       return idx !== -1 ? idx : 0;
     }
     return 0;
   });
   const [page, setPage] = useState(1);
-  const [expandedPost, setExpandedPost] = useState<string | null>(null);
-  const [commentText, setCommentText] = useState("");
+  const [showFollowing, setShowFollowing] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>("latest");
+  const navigate = useNavigate()
 
-  const activeTabData = tabs[activeTab];
-  const isPostTab = !!activeTabData?.category;
-  const isFollowingTab = activeTabData?.category === "following";
+  const activeTabData = POST_TABS[activeTab];
+  const isChallengesPanel = activeTabData?.panel === "challenges";
   const category = activeTabData?.category;
-  const { data: postsRes, isLoading: postsLoading } = usePosts(isPostTab && !isFollowingTab ? category : undefined, page);
-  const { data: followedPosts, isLoading: followedPostsLoading } = useFollowedPosts();
+
+  const { data: postsRes, isLoading: postsLoading } = usePosts(
+    !isChallengesPanel && !showFollowing ? category : undefined,
+    page,
+    sortBy
+  );
+  const { data: followedPosts, isLoading: followedPostsLoading } = useFollowedPosts(
+    { enabled: showFollowing },
+    sortBy
+  );
 
   const PAGE_SIZE = 20;
   const paginatedFollowedPosts = followedPosts?.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) ?? [];
   const followedTotalPages = Math.ceil((followedPosts?.length ?? 0) / PAGE_SIZE);
 
-  const postsData = isFollowingTab ? paginatedFollowedPosts : (postsRes?.posts ?? []);
-  const isLoading = isFollowingTab ? followedPostsLoading : postsLoading;
-  const totalPages = isFollowingTab ? followedTotalPages : Math.ceil((postsRes?.total ?? 0) / PAGE_SIZE);
+  const postsData = showFollowing ? paginatedFollowedPosts : (postsRes?.posts ?? []);
+  const isLoading = showFollowing ? followedPostsLoading : postsLoading;
+  const totalPages = showFollowing ? followedTotalPages : Math.ceil((postsRes?.total ?? 0) / PAGE_SIZE);
   const hasNextPage = page < totalPages;
 
   const addComment = useAddComment();
@@ -76,13 +86,13 @@ const Community = () => {
   return (
     <div className="animate-fade-in">
       <div className="mb-6">
-        <h1 className="font-slab text-2xl md:text-3xl font-bold">Community Ferment</h1>
-        <p className="text-muted-foreground text-sm mt-1">Lab notebooks from fellow brewers</p>
+        <h1 className="font-slab text-2xl md:text-3xl font-bold">Community</h1>
+        <p className="text-muted-foreground text-sm mt-1">{copy.community.joinDiscussion}</p>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 glass-panel rounded-xl p-1 w-full md:w-fit overflow-x-auto scrollbar-hide mx-auto">
-        {tabs.map((tab, i) => (
+      <div className="flex gap-1 mb-4 glass-panel rounded-xl p-1 w-full md:w-fit overflow-x-auto scrollbar-hide mx-auto">
+        {POST_TABS.map((tab, i) => (
           <button
             key={tab.label}
             onClick={() => {
@@ -108,9 +118,49 @@ const Community = () => {
         ))}
       </div>
 
-      {activeTabData?.panel === "challenges" && <ChallengesPanel />}
-      {activeTabData?.panel === "live" && <LiveTastingPanel />}
-      {isPostTab && (
+      {/* All/Following toggle + Sort dropdown */}
+      {!isChallengesPanel && (
+        <div className="flex items-center justify-between mb-6 gap-4">
+          {/* All / Following toggle */}
+          <div className="flex gap-1 glass-panel rounded-lg p-1">
+            <button
+              onClick={() => { setShowFollowing(false); setPage(1); }}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                !showFollowing
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => { setShowFollowing(true); setPage(1); }}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                showFollowing
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              Following
+            </button>
+          </div>
+
+          {/* Sort dropdown */}
+          <select
+            value={sortBy}
+            onChange={(e) => { setSortBy(e.target.value as SortOption); setPage(1); }}
+            className="h-9 px-3 pr-8 rounded-lg glass-panel border border-border/50 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-teal/30 cursor-pointer appearance-none"
+          >
+            <option value="latest">Latest</option>
+            <option value="most_liked">Most Liked</option>
+            <option value="most_commented">Most Commented</option>
+          </select>
+        </div>
+      )}
+
+      {isChallengesPanel && <ChallengesPanel />}
+
+      {!isChallengesPanel && (
         isLoading ? (
           <div className="space-y-4 max-w-3xl mx-auto">
             {[1, 2, 3].map((i) => (
@@ -119,7 +169,7 @@ const Community = () => {
           </div>
         ) : (postsData ?? []).length === 0 ? (
           <div className="glass-panel rounded-xl p-8 text-center max-w-3xl mx-auto">
-            <p className="text-muted-foreground">No posts yet in this category.</p>
+            <p className="text-muted-foreground">{copy.community.noPosts}</p>
           </div>
         ) : (
           <>
@@ -129,65 +179,60 @@ const Community = () => {
                 <PostCard
                   key={post.id}
                   post={post}
-                  isExpanded={expandedPost === post.id}
-                  onToggleComments={() =>
-                    setExpandedPost((id) => (id === post.id ? null : post.id))
-                  }
+                  onClick={() => navigate(`/post/${post.id}`)}
                   onShare={() => handleShare(post)}
                 />
               ))}
             </div>
 
-            {/* Pagination placeholder */}
-            <div className="flex items-center justify-center gap-3 mt-8">
-              <button
-                onClick={() => setPage(Math.max(1, page - 1))}
-                className="p-2 rounded-lg glass-panel hover:bg-muted transition-colors disabled:opacity-40"
-                disabled={page === 1}
-              >
-                <ChevronLeft size={16} />
-              </button>
-              <span className="text-sm font-medium px-3">Page {page}{totalPages > 0 ? ` of ${totalPages}` : ''}</span>
-              <button
-                onClick={() => setPage(page + 1)}
-                className="p-2 rounded-lg glass-panel hover:bg-muted transition-colors disabled:opacity-40"
-                disabled={!hasNextPage || isLoading}
-              >
-                <ChevronRight size={16} />
-              </button>
-            </div>
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-3 mt-8">
+                <button
+                  onClick={() => setPage(Math.max(1, page - 1))}
+                  className="p-2 rounded-lg glass-panel hover:bg-muted transition-colors disabled:opacity-40"
+                  disabled={page === 1}
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="text-sm font-medium px-3">Page {page}{totalPages > 0 ? ` of ${totalPages}` : ''}</span>
+                <button
+                  onClick={() => setPage(page + 1)}
+                  className="p-2 rounded-lg glass-panel hover:bg-muted transition-colors disabled:opacity-40"
+                  disabled={!hasNextPage || isLoading}
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            )}
           </>
         )
       )}
 
-      {/* Comment section overlay for expanded post */}
-      {expandedPost && (
-        <CommentSection
-          postId={expandedPost}
-          commentText={commentText}
-          setCommentText={setCommentText}
-          onClose={() => setExpandedPost(null)}
-        />
-      )}
+      {/* Post composer FAB — hidden on Challenges tab */}
+      <PostComposerFAB
+        activeTabCategory={category}
+        activeTabPanel={activeTabData?.panel}
+      />
     </div>
   );
 };
 
 function PostCard({
   post,
-  isExpanded,
-  onToggleComments,
+  onClick,
   onShare,
 }: {
   post: any;
-  isExpanded: boolean;
-  onToggleComments: () => void;
+  onClick: () => void;
   onShare: () => void;
 }) {
   const toggleLike = useToggleLike(post.id);
 
   return (
-    <article className="glass-panel rounded-xl p-4 sm:p-5 hover:shadow-lg transition-all duration-300">
+    <article className="glass-panel rounded-xl p-4 sm:p-5 hover:shadow-lg transition-all duration-300 cursor-pointer"
+      onClick={onClick}
+    >
       <div className="flex items-center gap-3 mb-3">
         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-copper/20 to-teal/20 border border-border flex items-center justify-center">
           <FlaskConical size={14} className={typeAccent[post.type] || "text-copper"} />
@@ -201,7 +246,7 @@ function PostCard({
       </div>
       <h3 className="font-slab font-semibold text-base mb-2">{post.title}</h3>
       <p className="text-sm text-muted-foreground leading-relaxed">{post.content}</p>
-      <div className="flex items-center gap-4 mt-4 pt-3 border-t border-border/30">
+      <div className="flex items-center gap-4 mt-4 pt-3 border-t border-border/30" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={() => toggleLike.mutate()}
           disabled={toggleLike.isPending}
@@ -211,19 +256,17 @@ function PostCard({
           {post.likes}
         </button>
         <button
-          onClick={onToggleComments}
-          className={`flex items-center gap-1.5 text-sm transition-colors ${
-            isExpanded ? "text-teal" : "text-muted-foreground hover:text-teal"
-          }`}
+          onClick={(e) => { e.stopPropagation(); onClick() }}
+          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-teal transition-colors"
         >
           <MessageSquare size={14} />
-          Comments
+          {copy.common.view}
         </button>
         <button
           onClick={onShare}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-gold transition-colors ml-auto"
         >
-          <Share2 size={14} /> Share
+          <Share2 size={14} /> {copy.common.share}
         </button>
       </div>
     </article>
@@ -263,7 +306,7 @@ function CommentSection({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
-          <h3 className="font-slab font-semibold text-sm">Comments</h3>
+          <h3 className="font-slab font-semibold text-sm">{copy.common.view} Comments</h3>
           <button onClick={onClose} className="p-1 rounded-md hover:bg-muted transition-colors">
             <span className="sr-only">Close</span>
             ✕

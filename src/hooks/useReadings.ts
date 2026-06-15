@@ -21,6 +21,26 @@ export function useReadings(batchId: string | undefined) {
   })
 }
 
+/** Fetches readings across ALL batches for the current user */
+export function useAllReadings(limit = 5) {
+  const { user } = useAuth()
+  return useQuery({
+    queryKey: ['allReadings'],
+    queryFn: async () => {
+      if (!user) return []
+      const { data, error } = await supabase
+        .from('readings')
+        .select('*, batch:batches(id, name)')
+        .eq('user_id', user.id)
+        .order('read_at', { ascending: false })
+        .limit(limit)
+      if (error) throw error
+      return data ?? []
+    },
+    enabled: !!user,
+  })
+}
+
 export function useCreateReading() {
   const qc = useQueryClient()
   const { user } = useAuth()
