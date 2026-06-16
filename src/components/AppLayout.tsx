@@ -2,12 +2,14 @@ import { useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   FlaskConical,
-  LayoutDashboard,
+  Beer,
   BookOpen,
   Users,
   User,
-  Plus,
   Bell,
+  Menu,
+  LogOut,
+  Settings,
 } from "lucide-react";
 import BubbleBackground from "./BubbleBackground";
 import { useNotifications, useMarkNotificationAsRead, useMarkAllNotificationsAsRead } from "@/hooks/useNotifications";
@@ -19,13 +21,24 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { MobileBatchDrawerProvider } from "@/contexts/MobileBatchDrawerContext";
+import { useMobileBatchDrawer } from "@/hooks/useMobileBatchDrawer";
+import { useProfile } from "@/hooks/useProfile";
 
-const navItems = [
-  { path: "/", label: "Brew Bench", icon: LayoutDashboard },
+const mainNavItems = [
+  { path: "/", label: "Brew Bench" },
+  { path: "/recipes", label: "Recipes" },
+  { path: "/community", label: "Community" },
+  { path: "/profile", label: "Profile" },
+];
+
+const mobileTabItems = [
+  { path: "/", label: "Brew Bench", icon: Beer },
   { path: "/recipes", label: "Recipes", icon: BookOpen },
   { path: "/community", label: "Community", icon: Users },
-  { path: "/new-brew", label: "New Brew", icon: Plus },
   { path: "/profile", label: "Profile", icon: User },
 ];
 
@@ -34,17 +47,123 @@ function isActive(path: string, pathname: string) {
   return pathname.startsWith(path);
 }
 
-const AppLayout = ({ children }: { children: React.ReactNode }) => {
-  const location = useLocation();
-  const { user } = useAuth();
-  const qc = useQueryClient();
+type ProfileLike = { display_name?: string | null; username?: string | null } | null | undefined;
+type UserLike = { email?: string | null } | null | undefined;
+
+function getInitials(profile: ProfileLike, user: UserLike): string {
+  const displayName = profile?.display_name;
+  const username = profile?.username;
+  const email = user?.email;
+  const raw = displayName || username || email || "?";
+  const parts = String(raw).trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return String(raw)[0].toUpperCase();
+}
+
+function NotificationBell() {
   const navigate = useNavigate();
+  const { data: notifications } = useNotifications();
+  const unreadCount = notifications?.length ?? 0;
   const markAsRead = useMarkNotificationAsRead();
   const markAllAsRead = useMarkAllNotificationsAsRead();
 
-  const { data: notifications } = useNotifications();
-  const unreadCount = notifications?.length ?? 0;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          className="relative p-2 rounded-lg hover:bg-muted transition-colors"
+          aria-label="Notifications"
+        >
+          <Bell size={20} />
+          {unreadCount > 0 && (
+            <span className="absolute top-1 right-1 min-w-[1.1rem] h-4 px-1 rounded-full bg-teal text-teal-foreground text-[10px] font-bold flex items-center justify-center">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
+        {unreadCount > 0 && (
+          <button
+            className="w-full px-3 py-2 text-left text-sm font-medium text-primary hover:bg-muted transition-colors border-b border-border/50 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => markAllAsRead.mutate()}
+            disabled={markAllAsRead.isPending}
+          >
+            Mark all as read
+          </button>
+        )}
+        {notifications && notifications.length > 0 ? (
+          notifications.map((n) => (
+            <DropdownMenuItem
+              key={n.id}
+              className="flex flex-col items-start cursor-pointer"
+              onClick={() => {
+                markAsRead.mutate(n.id);
+                if (n.link) navigate(n.link);
+              }}
+            >
+              <span className="font-medium text-sm">{n.title}</span>
+              {n.body && (
+                <span className="text-xs text-muted-foreground line-clamp-2">
+                  {n.body}
+                </span>
+              )}
+            </DropdownMenuItem>
+          ))
+        ) : (
+          <div className="px-3 py-2 text-sm text-muted-foreground">
+            No new notifications
+          </div>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
+function UserAvatar() {
+  const { user, signOut } = useAuth();
+  const { data: profile } = useProfile();
+  const navigate = useNavigate();
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button className="rounded-full focus:outline-none focus:ring-2 focus:ring-primary/40" aria-label="User menu">
+          <Avatar className="h-9 w-9 border border-border/60">
+            <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+              {getInitials(profile, user)}
+            </AvatarFallback>
+          </Avatar>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuItem onClick={() => navigate("/profile")} className="cursor-pointer gap-2">
+          <User size={16} />
+          Profile
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => navigate("/settings")} className="cursor-pointer gap-2">
+          <Settings size={16} />
+          Settings
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => signOut()} className="cursor-pointer gap-2 text-destructive focus:text-destructive">
+          <LogOut size={16} />
+          Log out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+const AppLayoutInner = ({ children }: { children: React.ReactNode }) => {
+  const location = useLocation();
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const { toggle } = useMobileBatchDrawer();
+
+  // Real-time notification subscription
   useEffect(() => {
     if (!user) return;
     const channel = supabase
@@ -72,13 +191,46 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
     <div className="h-screen relative flex flex-col overflow-hidden">
       <BubbleBackground count={10} />
 
-      {/* ─────────────────────────── Desktop Dock ─────────────────────────── */}
+      {/* ═══════════════════ Mobile Top Bar ═══════════════════ */}
       <nav
-        className="hidden lg:flex fixed top-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-4xl mx-auto px-4"
+        className="flex lg:hidden fixed top-0 left-0 right-0 z-50 h-14 items-center px-4 bg-background/80 backdrop-blur-md border-b border-border/50"
+        aria-label="Top navigation"
+      >
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-2 shrink-0">
+          <div className="w-7 h-7 rounded-md bg-gradient-to-br from-copper to-gold flex items-center justify-center">
+            <FlaskConical size={16} className="text-copper-foreground" />
+          </div>
+          <span className="font-slab font-bold text-sm whitespace-nowrap">
+            Homebrew Haven
+          </span>
+        </Link>
+
+        <div className="flex-1" />
+
+        {/* Right actions */}
+        <div className="flex items-center gap-1">
+          {location.pathname === "/" && (
+            <button
+              onClick={toggle}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-muted transition-colors text-sm font-medium text-muted-foreground hover:text-foreground"
+              aria-label="Open batch list"
+            >
+              <Menu size={18} />
+              <span className="text-sm">Batches</span>
+            </button>
+          )}
+          <NotificationBell />
+        </div>
+      </nav>
+
+      {/* ═══════════════════ Desktop Top Nav ═══════════════════ */}
+      <nav
+        className="hidden lg:flex fixed top-0 left-0 right-0 z-50 h-16 items-center px-6 bg-background/80 backdrop-blur-md border-b border-border/50"
         aria-label="Main navigation"
       >
-        <div className="glass-panel-strong rounded-2xl shadow-xl border border-border/60 px-4 py-2 flex items-center justify-between w-full gap-4">
-          {/* Brand */}
+        <div className="max-w-[1600px] mx-auto w-full flex items-center justify-between gap-6">
+          {/* Logo */}
           <Link to="/" className="flex items-center gap-2.5 shrink-0">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-copper to-gold flex items-center justify-center">
               <FlaskConical size={18} className="text-copper-foreground" />
@@ -90,100 +242,39 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
 
           {/* Nav Links */}
           <div className="flex items-center gap-1">
-            {navItems
-              .filter((item) => item.path !== "/profile")
-              .map((item) => {
-                const active = isActive(item.path, location.pathname);
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium transition-all whitespace-nowrap ${
-                      active
-                        ? "bg-primary/10 text-primary border border-primary/20"
-                        : "hover:bg-muted text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <item.icon size={18} />
-                    {item.label}
-                  </Link>
-                );
-              })}
+            {mainNavItems.map((item) => {
+              const active = isActive(item.path, location.pathname);
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`flex items-center px-3.5 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                    active
+                      ? "bg-primary/10 text-primary"
+                      : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </div>
 
           {/* Right Utilities */}
-          <div className="flex items-center gap-2 shrink-0">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  className="relative p-2 rounded-lg hover:bg-muted transition-colors"
-                  aria-label="Notifications"
-                >
-                  <Bell size={18} />
-                  {unreadCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 min-w-[1rem] h-4 px-1 rounded-full bg-teal text-teal-foreground text-[10px] font-bold flex items-center justify-center">
-                      {unreadCount > 9 ? "9+" : unreadCount}
-                    </span>
-                  )}
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-y-auto">
-                {unreadCount > 0 && (
-                  <button
-                    className="w-full px-3 py-2 text-left text-sm font-medium text-primary hover:bg-muted transition-colors border-b border-border/50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    onClick={() => markAllAsRead.mutate()}
-                    disabled={markAllAsRead.isPending}
-                  >
-                    Mark all as read
-                  </button>
-                )}
-                {notifications && notifications.length > 0 ? (
-                  notifications.map((n: any) => (
-                    <DropdownMenuItem
-                      key={n.id}
-                      className="flex flex-col items-start cursor-pointer"
-                      onClick={() => {
-                        markAsRead.mutate(n.id)
-                        if (n.link) navigate(n.link)
-                      }}
-                    >
-                      <span className="font-medium text-sm">{n.title}</span>
-                      {n.body && (
-                        <span className="text-xs text-muted-foreground line-clamp-2">
-                          {n.body}
-                        </span>
-                      )}
-                    </DropdownMenuItem>
-                  ))
-                ) : (
-                  <div className="px-3 py-2 text-sm text-muted-foreground">
-                    No new notifications
-                  </div>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Link
-              to="/profile"
-              className={`p-2 rounded-lg transition-colors ${
-                isActive("/profile", location.pathname)
-                  ? "text-primary bg-primary/10 border border-primary/20"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
-              }`}
-              aria-label="Profile"
-            >
-              <User size={18} />
-            </Link>
+          <div className="flex items-center gap-3 shrink-0">
+            <NotificationBell />
+            <UserAvatar />
           </div>
         </div>
       </nav>
 
-      {/* ─────────────────────────── Mobile Dock ─────────────────────────── */}
+      {/* ═══════════════════ Mobile Bottom Tab Bar ═══════════════════ */}
       <nav
-        className="flex lg:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-md px-2"
-        aria-label="Mobile navigation"
+        className="flex lg:hidden fixed bottom-0 left-0 right-0 z-50 h-16 bg-background/90 backdrop-blur-md border-t border-border/50"
+        aria-label="Mobile tab navigation"
       >
-        <div className="glass-panel-strong rounded-2xl shadow-xl border border-border/60 px-2 py-1.5 flex items-center justify-around w-full">
-          {navItems.map((item) => {
+        <div className="flex items-center justify-around w-full max-w-md mx-auto">
+          {mobileTabItems.map((item) => {
             const active = isActive(item.path, location.pathname);
             return (
               <Link
@@ -191,12 +282,12 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
                 to={item.path}
                 className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-colors min-h-[44px] min-w-[44px] justify-center ${
                   active
-                    ? "text-primary bg-primary/10 border border-primary/20"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                    ? "text-primary"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <item.icon size={20} />
-                <span className="text-[10px] font-medium leading-normal text-center">
+                <span className="text-[10px] font-medium leading-tight">
                   {item.label}
                 </span>
               </Link>
@@ -205,8 +296,8 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
         </div>
       </nav>
 
-      {/* ─────────────────────────── Main Content ─────────────────────────── */}
-      <main className="flex-1 pt-6 lg:pt-20 pb-24 lg:pb-8 relative z-10 overflow-y-auto">
+      {/* ═══════════════════ Main Content ═══════════════════ */}
+      <main className="flex-1 pt-14 lg:pt-16 pb-16 lg:pb-0 relative z-10 overflow-y-auto">
         <div className="p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto">
           {children}
         </div>
@@ -214,5 +305,11 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
     </div>
   );
 };
+
+const AppLayout = ({ children }: { children: React.ReactNode }) => (
+  <MobileBatchDrawerProvider>
+    <AppLayoutInner>{children}</AppLayoutInner>
+  </MobileBatchDrawerProvider>
+);
 
 export default AppLayout;

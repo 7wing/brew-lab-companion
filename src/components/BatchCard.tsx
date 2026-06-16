@@ -48,7 +48,7 @@ const BatchCard = ({
   return (
     <Link
       to={`/batch/${id}`}
-      className={`group block glass-panel rounded-xl border bg-gradient-to-b ${typeColors[type]} p-4 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 min-w-[260px] md:min-w-[300px]`}
+      className={`group block glass-panel rounded-xl border bg-gradient-to-b ${typeColors[type]} p-4 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 min-w-[260px] md:min-w-[300px] xl:min-w-0`}
     >
       <div className="flex items-start justify-between mb-3">
         <div>

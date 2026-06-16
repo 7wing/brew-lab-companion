@@ -1,11 +1,29 @@
 import { useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { MessageSquare, Heart, Share2, ChevronLeft, ChevronRight, FlaskConical, Send, Loader2 } from "lucide-react";
+import { MessageSquare, Heart, Share2, ChevronLeft, ChevronRight, FlaskConical, Send, Loader2, Search, MoreHorizontal, Clock, Image } from "lucide-react";
 import { usePosts, useToggleLike, useComments, useAddComment } from "@/hooks/usePosts";
 import { useFollowedPosts } from "@/hooks/useFollowedPosts";
+import { useAuth } from "@/contexts/AuthContext";
 import ChallengesPanel from "@/components/ChallengesPanel";
 import PostComposerFAB from "@/components/PostComposerFAB";
 import { copy } from "@/constants/copy";
+import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 type SortOption = "latest" | "most_liked" | "most_commented";
 
@@ -39,6 +57,7 @@ const Community = () => {
   const [page, setPage] = useState(1);
   const [showFollowing, setShowFollowing] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("latest");
+  const [searchQuery, setSearchQuery] = useState("");
   const navigate = useNavigate()
 
   const activeTabData = POST_TABS[activeTab];
@@ -48,11 +67,14 @@ const Community = () => {
   const { data: postsRes, isLoading: postsLoading } = usePosts(
     !isChallengesPanel && !showFollowing ? category : undefined,
     page,
-    sortBy
+    sortBy,
+    undefined,
+    searchQuery
   );
   const { data: followedPosts, isLoading: followedPostsLoading } = useFollowedPosts(
     { enabled: showFollowing },
-    sortBy
+    sortBy,
+    searchQuery
   );
 
   const PAGE_SIZE = 20;
@@ -85,9 +107,16 @@ const Community = () => {
 
   return (
     <div className="animate-fade-in">
-      <div className="mb-6">
-        <h1 className="font-slab text-2xl md:text-3xl font-bold">Community</h1>
-        <p className="text-muted-foreground text-sm mt-1">{copy.community.joinDiscussion}</p>
+      {/* Search bar */}
+      <div className="relative mb-4">
+        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+        <input
+          type="search"
+          placeholder="Search community..."
+          value={searchQuery}
+          onChange={(e) => { setSearchQuery(e.target.value); setPage(1); }}
+          className="w-full h-10 pl-9 pr-4 rounded-lg bg-muted/50 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30 transition-all placeholder:text-muted-foreground"
+        />
       </div>
 
       {/* Tabs */}
@@ -98,7 +127,7 @@ const Community = () => {
             onClick={() => {
               setActiveTab(i);
               setPage(1);
-              setExpandedPost(null);
+              setSearchQuery("");
               if (tab.panel) {
                 setSearchParams({ tab: tab.panel });
               } else if (tab.category) {
@@ -106,6 +135,7 @@ const Community = () => {
               } else {
                 setSearchParams({});
               }
+              setSearchQuery("");
             }}
             className={`px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap shrink-0 ${
               activeTab === i
@@ -218,6 +248,21 @@ const Community = () => {
   );
 };
 
+function formatPostTime(dateStr: string | null): string {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diff = now.getTime() - d.getTime();
+  const minutes = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m`;
+  if (hours < 24) return `${hours}h`;
+  if (days < 7) return `${days}d`;
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
 function PostCard({
   post,
   onClick,
@@ -228,24 +273,101 @@ function PostCard({
   onShare: () => void;
 }) {
   const toggleLike = useToggleLike(post.id);
+  const { user } = useAuth();
+  const isOwner = user?.id === post.user_id;
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   return (
     <article className="glass-panel rounded-xl p-4 sm:p-5 hover:shadow-lg transition-all duration-300 cursor-pointer"
       onClick={onClick}
     >
-      <div className="flex items-center gap-3 mb-3">
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-copper/20 to-teal/20 border border-border flex items-center justify-center">
-          <FlaskConical size={14} className={typeAccent[post.type] || "text-copper"} />
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-copper/20 to-teal/20 border border-border flex items-center justify-center">
+            <FlaskConical size={14} className={typeAccent[post.type] || "text-copper"} />
+          </div>
+          <div>
+            <p className="text-sm font-semibold">@{post.profiles?.username ?? "anonymous"}</p>
+            <div className="flex items-center gap-1.5">
+              <p className={`text-[10px] uppercase tracking-widest ${typeAccent[post.type] ?? "text-muted-foreground"}`}>
+                {post.type}
+              </p>
+              <span className="text-[10px] text-muted-foreground">·</span>
+              <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                <Clock size={8} />
+                {formatPostTime(post.created_at)}
+              </span>
+            </div>
+          </div>
         </div>
-        <div>
-          <p className="text-sm font-semibold">{post.profiles?.username ?? "Anonymous"}</p>
-          <p className={`text-[10px] uppercase tracking-widest ${typeAccent[post.type] ?? "text-muted-foreground"}`}>
-            {post.type}
-          </p>
-        </div>
+
+        {/* Options menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              onClick={(e) => e.stopPropagation()}
+              className="p-1 rounded-md hover:bg-muted transition-colors text-muted-foreground"
+              aria-label="Options"
+            >
+              <MoreHorizontal size={16} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40">
+            {isOwner ? (
+              <>
+                <DropdownMenuItem onClick={() => toast.info("Edit post — coming soon")} className="cursor-pointer gap-2">
+                  <Edit2 size={14} /> Edit post
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+                  <DialogTrigger asChild>
+                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer gap-2 text-destructive focus:text-destructive">
+                      <Trash2 size={14} /> Delete post
+                    </DropdownMenuItem>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md max-w-full">
+                    <DialogHeader>
+                      <DialogTitle className="font-slab">Delete post?</DialogTitle>
+                      <DialogDescription>This action cannot be undone.</DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                      <Button variant="ghost" onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>
+                      <Button variant="destructive" onClick={() => { setShowDeleteConfirm(false); toast.info("Delete post — coming soon"); }}>Delete</Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </>
+            ) : (
+              <DropdownMenuItem onClick={() => toast.info("Report post — coming soon")} className="cursor-pointer gap-2">
+                <Flag size={14} /> Report post
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
+
       <h3 className="font-slab font-semibold text-base mb-2">{post.title}</h3>
-      <p className="text-sm text-muted-foreground leading-relaxed">{post.content}</p>
+      <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">{post.content}</p>
+
+      {/* Photo thumbnail */}
+      {post.photos && Array.isArray(post.photos) && post.photos.length > 0 && (
+        <div className="mt-3 flex gap-2 overflow-x-auto">
+          {(post.photos as string[]).slice(0, 3).map((url: string, idx: number) => (
+            <div key={idx} className="w-20 h-20 rounded-lg border border-border/40 bg-muted/30 flex items-center justify-center shrink-0 overflow-hidden">
+              <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Recipe tag */}
+      {post.recipe_id && (
+        <div className="mt-2 inline-flex items-center gap-1 text-xs text-copper bg-copper/10 px-2 py-1 rounded-md">
+          <FlaskConical size={10} />
+          Tagged recipe
+        </div>
+      )}
+
       <div className="flex items-center gap-4 mt-4 pt-3 border-t border-border/30" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={() => toggleLike.mutate()}
@@ -253,14 +375,14 @@ function PostCard({
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-copper transition-colors disabled:opacity-50"
         >
           <Heart size={14} className={post.likes > 0 ? "fill-copper text-copper" : ""} />
-          {post.likes}
+          {post.likes ?? 0}
         </button>
         <button
           onClick={(e) => { e.stopPropagation(); onClick() }}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-teal transition-colors"
         >
           <MessageSquare size={14} />
-          {copy.common.view}
+          Comments
         </button>
         <button
           onClick={onShare}

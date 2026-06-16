@@ -63,7 +63,7 @@ export const ACTIONS = {
 } as const
 
 export const RECIPE = {
-  brewThis: "Brew This",
+  brewThis: "Brew this",
   shareRecipe: "Share Recipe",
   featuredRecipes: "Featured Recipes",
   curated: "Curated Collection",

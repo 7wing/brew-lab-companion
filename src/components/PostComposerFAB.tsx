@@ -41,7 +41,7 @@ export default function PostComposerFAB({ activeTabCategory, activeTabPanel }: P
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-40">
+    <div className="fixed bottom-24 lg:bottom-8 right-4 lg:right-8 z-40">
       <ComposerButton activeTabCategory={activeTabCategory} />
     </div>
   );

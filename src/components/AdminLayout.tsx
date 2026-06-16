@@ -25,6 +25,7 @@ import LabPartners from '@/pages/admin/LabPartners'
 import Notifications from '@/pages/admin/Notifications'
 import AdminSettings from '@/pages/admin/AdminSettings'
 
+// Admin panel routes — Dashboard, pending reviews, flagged content, users, challenges, featured, partners, notifications, settings
 const adminNavItems = [
   { path: '/admin', label: 'Dashboard', icon: LayoutDashboard, exact: true },
   { path: '/admin/recipes', label: 'Recipes', icon: BookOpen },

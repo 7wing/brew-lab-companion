@@ -12,7 +12,7 @@ const features = [
   },
   {
     icon: BookOpen,
-    title: "Recipe Vault",
+    title: "Recipes",
     description: "Discover hundreds of community recipes or share your own creations. Find the perfect brew for any occasion.",
   },
   {

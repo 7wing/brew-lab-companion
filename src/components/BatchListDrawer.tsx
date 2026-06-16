@@ -1,13 +1,12 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight, Menu } from "lucide-react";
+import { ChevronRight } from "lucide-react";
+import { useMobileBatchDrawer } from "@/hooks/useMobileBatchDrawer";
 import { LIFECYCLE_ORDER, LIFECYCLE_LABELS, LifecycleStatus } from "@/lib/lifecycle";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
 
 interface Batch {
@@ -127,7 +126,7 @@ function BatchListContent({
 // Combined BatchListDrawer component that handles both mobile (Sheet) and desktop (sidebar)
 function BatchListDrawer({ batches, selectedBatchId }: BatchListDrawerProps) {
   const navigate = useNavigate();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const { open, setOpen } = useMobileBatchDrawer();
 
   const handleSelect = (id: string) => {
     navigate(`/batch/${id}`);
@@ -135,17 +134,9 @@ function BatchListDrawer({ batches, selectedBatchId }: BatchListDrawerProps) {
 
   return (
     <>
-      {/* Mobile: Sheet drawer trigger */}
+      {/* Mobile: Sheet drawer */}
       <div className="xl:hidden">
-        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
-          <SheetTrigger asChild>
-            <button
-              className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-              aria-label="Open batch list"
-            >
-              <Menu size={20} />
-            </button>
-          </SheetTrigger>
+        <Sheet open={open} onOpenChange={setOpen}>
           <SheetContent side="left" className="w-[280px] sm:max-w-[280px] flex flex-col">
             <SheetHeader className="shrink-0">
               <SheetTitle className="font-slab flex items-center gap-2">
@@ -157,7 +148,7 @@ function BatchListDrawer({ batches, selectedBatchId }: BatchListDrawerProps) {
               selectedBatchId={selectedBatchId}
               onSelect={(id) => {
                 handleSelect(id);
-                setMobileOpen(false);
+                setOpen(false);
               }}
             />
           </SheetContent>

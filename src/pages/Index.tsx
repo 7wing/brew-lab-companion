@@ -30,13 +30,6 @@ import { Label } from "@/components/ui/label";
 import { BREW } from "@/constants/copy";
 import { LIFECYCLE_ORDER, LIFECYCLE_LABELS, LifecycleStatus } from "@/lib/lifecycle";
 
-const typeColors: Record<string, string> = {
-  beer: "bg-copper/20 text-copper",
-  kombucha: "bg-teal/20 text-teal",
-  mead: "bg-gold/20 text-gold",
-  cider: "bg-copper/15 text-copper",
-};
-
 function daysSince(start: string) {
   const diff = Date.now() - new Date(start).getTime();
   return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
@@ -88,6 +81,14 @@ function formatDate(dateStr: string): string {
   });
 }
 
+function UrgencyDot({ level }: { level: "overdue" | "today" | "upcoming" }) {
+  if (level === "overdue")
+    return <span className="inline-block w-2 h-2 rounded-full bg-red-400 shrink-0" />;
+  if (level === "today")
+    return <span className="inline-block w-2 h-2 rounded-full bg-amber-400 shrink-0" />;
+  return <span className="inline-block w-2 h-2 rounded-full bg-teal shrink-0" />;
+}
+
 const Index = () => {
   const { data: batches, isLoading } = useBatches();
   const { data: allReadings } = useAllReadings(5);
@@ -109,9 +110,7 @@ const Index = () => {
   // Group batches by lifecycle status
   const batchesByStage = LIFECYCLE_ORDER.reduce(
     (acc, stage) => {
-      acc[stage] = (batches ?? []).filter(
-        (b: any) => b.status === stage
-      );
+      acc[stage] = (batches ?? []).filter((b: any) => b.status === stage);
       return acc;
     },
     {} as Record<LifecycleStatus, any[]>
@@ -131,33 +130,27 @@ const Index = () => {
 
   return (
     <div className="animate-fade-in">
-      {/* Top action bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div className="flex items-center gap-2 flex-wrap">
-          <Link
-            to="/new-brew"
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-copper to-copper/80 text-copper-foreground font-medium text-sm shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
-          >
-            <Plus size={16} />
-            {BREW.startNewBrew}
-          </Link>
-          <div className="flex items-center gap-1">
-            <Link
-              to="/recipes"
-              className="p-2.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-              aria-label="Recipe Search"
-            >
-              <Search size={18} />
-            </Link>
-            <AbvCalculatorTrigger iconOnly />
-            <TempConverterTrigger iconOnly />
-          </div>
-        </div>
+      {/* ─── Top action bar ─── */}
+      <div className="flex items-center justify-between gap-4 mb-6">
+        <Link
+          to="/new-brew"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-copper to-copper/80 text-copper-foreground font-medium text-sm shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
+        >
+          <Plus size={16} />
+          {BREW.startNewBrew}
+        </Link>
+        <Link
+          to="/recipes"
+          className="p-2.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+          aria-label="Recipe Search"
+        >
+          <Search size={18} />
+        </Link>
       </div>
 
-      {/* Upcoming Actions Strip */}
+      {/* ─── Mobile upcoming actions strip ─── */}
       {upcomingActions.length > 0 && (
-        <div className="glass-panel rounded-xl p-4 mb-6">
+        <div className="xl:hidden glass-panel rounded-xl p-4 mb-6">
           <h2 className="font-slab font-semibold text-sm mb-3 flex items-center gap-2">
             <Calendar size={16} className="text-teal" />
             {BREW.upcomingActions}
@@ -202,14 +195,13 @@ const Index = () => {
         </div>
       )}
 
-      <div className="flex gap-6">
-        {/* Batch List Drawer - desktop sidebar / mobile sheet */}
+      {/* ─── Main 3-column layout (sidebar | main | right panel) ─── */}
+      <div className="flex flex-col xl:flex-row gap-6">
+        {/* Batch sidebar — hidden on mobile, visible on xl+ */}
         <BatchListDrawer batches={batches ?? []} />
 
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col gap-6">
-          {/* Main Area - Lifecycle Sections */}
-          <section className="space-y-8">
+        {/* Main content area */}
+        <section className="flex-1 space-y-8 min-w-0">
           {isLoading ? (
             <>
               {LIFECYCLE_ORDER.map((stage) => (
@@ -244,7 +236,7 @@ const Index = () => {
               {recentCompletedBatches.length > 0 && (
                 <div className="mt-8 text-left">
                   <h3 className="font-slab font-semibold text-sm mb-4 text-muted-foreground">
-                    Recently Completed
+                    Recent batches
                   </h3>
                   <div className="space-y-2">
                     {recentCompletedBatches.map((batch: any) => (
@@ -327,8 +319,43 @@ const Index = () => {
           )}
         </section>
 
-        {/* Right Panel - Recent Readings */}
-        <aside className="w-full xl:w-[320px] shrink-0 space-y-4">
+        {/* Right panel — upcoming actions (desktop) + recent readings */}
+        <aside className="w-full xl:w-[280px] shrink-0 space-y-4">
+          {/* Desktop upcoming actions */}
+          {upcomingActions.length > 0 && (
+            <div className="hidden xl:block glass-panel rounded-xl p-4">
+              <h2 className="font-slab font-semibold text-sm mb-3 flex items-center gap-2">
+                <Calendar size={16} className="text-teal" />
+                {BREW.upcomingActions}
+              </h2>
+              <div className="space-y-2">
+                {upcomingActions.slice(0, 5).map((action, i) => {
+                  const urgency = getUrgencyLevel(action.scheduled);
+                  return (
+                    <Link
+                      key={i}
+                      to={`/batch/${action.batchId}`}
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm hover:bg-muted/50 transition-colors"
+                    >
+                      <UrgencyDot level={urgency} />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">
+                          {action.name} — {action.batchName}
+                        </p>
+                        {action.scheduled && (
+                          <p className="text-xs text-muted-foreground">
+                            {formatDate(action.scheduled)}
+                          </p>
+                        )}
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Recent Readings */}
           <div className="glass-panel rounded-xl overflow-hidden">
             <div className="px-4 py-3 border-b border-border/50">
               <h3 className="font-slab font-semibold text-sm flex items-center gap-2">
@@ -344,7 +371,7 @@ const Index = () => {
               </div>
             ) : (allReadings ?? []).length === 0 ? (
               <p className="text-xs text-muted-foreground p-4 text-center">
-                No readings recorded yet.
+                No readings yet.
               </p>
             ) : (
               <div className="overflow-x-auto">
@@ -369,7 +396,7 @@ const Index = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {(allReadings ?? []).map((r: any) => (
+                    {(allReadings ?? []).map((r: any, idx: number) => (
                       <tr
                         key={r.id}
                         className="border-b border-border/20 hover:bg-muted/30 transition-colors"
@@ -379,7 +406,7 @@ const Index = () => {
                             ? formatDate(r.read_at)
                             : "—"}
                         </td>
-                        <td className="px-4 py-2.5 text-right font-mono text-copper">
+                        <td className={`px-4 py-2.5 text-right font-mono ${idx === 0 ? "text-copper font-semibold" : ""}`}>
                           {Number(r.gravity).toFixed(3)}
                         </td>
                         <td className="px-4 py-2.5 text-right">
@@ -397,173 +424,12 @@ const Index = () => {
             )}
           </div>
         </aside>
-        </div>
       </div>
 
-      {/* Speed FAB - Fixed bottom right */}
+      {/* Speed FAB */}
       <SpeedFAB />
     </div>
   );
 };
-
-function AbvCalculatorTrigger({ iconOnly = false }: { iconOnly?: boolean }) {
-  const [og, setOg] = useState("");
-  const [fg, setFg] = useState("");
-  const abv =
-    og && fg
-      ? ((parseFloat(og) - parseFloat(fg)) * 131.25).toFixed(2)
-      : null;
-
-  return (
-    <Sheet>
-      <SheetTrigger asChild>
-        {iconOnly ? (
-          <button
-            className="p-2.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-            aria-label="ABV Calculator"
-          >
-            <FlaskConical size={18} />
-          </button>
-        ) : (
-          <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted text-sm text-left transition-colors">
-            <FlaskConical size={14} className="text-muted-foreground" />
-            ABV Calculator
-          </button>
-        )}
-      </SheetTrigger>
-      <SheetContent side="right" className="sm:max-w-sm">
-        <SheetHeader>
-          <SheetTitle className="font-slab flex items-center gap-2">
-            <FlaskConical size={18} className="text-copper" />
-            ABV Calculator
-          </SheetTitle>
-        </SheetHeader>
-        <div className="mt-6 space-y-4">
-          <div>
-            <Label htmlFor="og">Original Gravity (OG)</Label>
-            <input
-              id="og"
-              type="number"
-              step="0.001"
-              min="1"
-              max="1.2"
-              placeholder="1.050"
-              value={og}
-              onChange={(e) => setOg(e.target.value)}
-              className="mt-1.5 w-full h-10 px-3 rounded-lg bg-muted/50 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-copper/30"
-            />
-          </div>
-          <div>
-            <Label htmlFor="fg">Final Gravity (FG)</Label>
-            <input
-              id="fg"
-              type="number"
-              step="0.001"
-              min="0.99"
-              max="1.2"
-              placeholder="1.010"
-              value={fg}
-              onChange={(e) => setFg(e.target.value)}
-              className="mt-1.5 w-full h-10 px-3 rounded-lg bg-muted/50 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-copper/30"
-            />
-          </div>
-          <div className="glass-panel rounded-xl p-4 text-center">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-              Estimated ABV
-            </p>
-            <p className="text-3xl font-mono font-bold text-copper">
-              {abv ? `${abv}%` : "—"}
-            </p>
-          </div>
-          <p className="text-[10px] text-muted-foreground">
-            Formula: (OG − FG) × 131.25
-          </p>
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-}
-
-function TempConverterTrigger({ iconOnly = false }: { iconOnly?: boolean }) {
-  const [fahrenheit, setFahrenheit] = useState("");
-  const [celsius, setCelsius] = useState("");
-
-  function updateFromF(val: string) {
-    setFahrenheit(val);
-    const num = parseFloat(val);
-    if (!isNaN(num)) {
-      setCelsius(((num - 32) * 5 / 9).toFixed(1));
-    } else {
-      setCelsius("");
-    }
-  }
-
-  function updateFromC(val: string) {
-    setCelsius(val);
-    const num = parseFloat(val);
-    if (!isNaN(num)) {
-      setFahrenheit((num * 9 / 5 + 32).toFixed(1));
-    } else {
-      setFahrenheit("");
-    }
-  }
-
-  return (
-    <Sheet>
-      <SheetTrigger asChild>
-        {iconOnly ? (
-          <button
-            className="p-2.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-            aria-label="Temp Converter"
-          >
-            <Thermometer size={18} />
-          </button>
-        ) : (
-          <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted text-sm text-left transition-colors">
-            <Thermometer size={14} className="text-muted-foreground" />
-            Temp Converter
-          </button>
-        )}
-      </SheetTrigger>
-      <SheetContent side="right" className="sm:max-w-sm">
-        <SheetHeader>
-          <SheetTitle className="font-slab flex items-center gap-2">
-            <Thermometer size={18} className="text-teal" />
-            Temperature Converter
-          </SheetTitle>
-        </SheetHeader>
-        <div className="mt-6 space-y-4">
-          <div>
-            <Label htmlFor="f">Fahrenheit (°F)</Label>
-            <input
-              id="f"
-              type="number"
-              step="0.1"
-              placeholder="68"
-              value={fahrenheit}
-              onChange={(e) => updateFromF(e.target.value)}
-              className="mt-1.5 w-full h-10 px-3 rounded-lg bg-muted/50 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30"
-            />
-          </div>
-          <div className="flex justify-center">
-            <ArrowRightLeft size={16} className="text-muted-foreground" />
-          </div>
-          <div>
-            <Label htmlFor="c">Celsius (°C)</Label>
-            <input
-              id="c"
-              type="number"
-              step="0.1"
-              placeholder="20"
-              value={celsius}
-              onChange={(e) => updateFromC(e.target.value)}
-              className="mt-1.5 w-full h-10 px-3 rounded-lg bg-muted/50 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30"
-            />
-          </div>
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-}
 
 export default Index;

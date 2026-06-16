@@ -6,9 +6,9 @@ const PAGE_SIZE = 20
 
 export type SortOption = 'latest' | 'most_liked' | 'most_commented'
 
-export function usePosts(category?: string, page: number = 1, sort: SortOption = 'latest', userId?: string) {
+export function usePosts(category?: string, page: number = 1, sort: SortOption = 'latest', userId?: string, search?: string) {
   return useQuery({
-    queryKey: ['posts', category, page, sort, userId],
+    queryKey: ['posts', category, page, sort, userId, search],
     queryFn: async () => {
       const from = (page - 1) * PAGE_SIZE
       const to = from + PAGE_SIZE - 1
@@ -22,6 +22,9 @@ export function usePosts(category?: string, page: number = 1, sort: SortOption =
       }
       if (userId) {
         q = q.eq('user_id', userId)
+      }
+      if (search) {
+        q = q.or(`title.ilike.%${search}%,content.ilike.%${search}%`)
       }
 
       switch (sort) {

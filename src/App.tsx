@@ -22,7 +22,7 @@ import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
 import Search from "./pages/Search";
 import NotFound from "./pages/NotFound";
-import Onboarding from "./pages/Onboarding";
+
 import AdminLayout from "./components/AdminLayout";
 
 const queryClient = new QueryClient();
@@ -178,17 +178,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
 
-            {/* Onboarding — full screen, no AppLayout dock */}
-            <Route
-              path="/onboarding"
-              element={
-                <ProtectedRoute>
-                  <Onboarding />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Home route: Landing for unauthenticated, Onboarding or Index (Brew Bench) for authenticated */}
+            {/* Home route: Landing for unauthenticated, Index (Brew Bench) for authenticated */}
             <Route path="/*" element={<HomeRoute />} />
           </Routes>
         </AuthProvider>

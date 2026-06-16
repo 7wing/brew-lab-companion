@@ -3,10 +3,10 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/contexts/AuthContext'
 import type { SortOption } from './usePosts'
 
-export function useFollowedPosts(opts?: { enabled?: boolean }, sort: SortOption = 'latest') {
+export function useFollowedPosts(opts?: { enabled?: boolean }, sort: SortOption = 'latest', search?: string) {
   const { user } = useAuth()
   return useQuery({
-    queryKey: ['followedPosts', user?.id, sort],
+    queryKey: ['followedPosts', user?.id, sort, search],
     queryFn: async () => {
       if (!user) return []
 
@@ -26,6 +26,10 @@ export function useFollowedPosts(opts?: { enabled?: boolean }, sort: SortOption 
         .from('posts')
         .select('*, profiles(username, avatar_url)')
         .in('user_id', followedIds)
+
+      if (search) {
+        q = q.or(`title.ilike.%${search}%,content.ilike.%${search}%`)
+      }
 
       switch (sort) {
         case 'most_liked':

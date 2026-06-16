@@ -33,7 +33,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Badge } from "@/components/ui/badge";
 import { useRecipes, useFeaturedRecipes, useUpdateRecipe, useDeleteRecipe, type RecipeFilters } from "@/hooks/useRecipes";
 import { RECIPE, ACTIONS } from "@/constants/copy";
 
@@ -126,9 +125,11 @@ function RecipeCard({ recipe, onToggleStar }: { recipe: any; onToggleStar: () =>
               {recipe.style}
             </span>
           )}
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-gold/20 text-gold font-semibold">
-            Featured
-          </span>
+          {recipe.featured && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-gold/20 text-gold font-semibold">
+              Featured
+            </span>
+          )}
         </div>
         <button
           onClick={(e) => { e.stopPropagation(); onToggleStar(); }}
@@ -437,15 +438,6 @@ const RecipeVault = () => {
 
   return (
     <div className="animate-fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="font-slab text-2xl md:text-3xl font-bold">Recipe Vault</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {isLoading ? "Loading…" : `${recipes?.length ?? 0} recipes catalogued`}
-          </p>
-        </div>
-      </div>
-
       {/* Search + Filters Row */}
       <div className="glass-panel rounded-xl p-4 mb-4">
         <div className="flex flex-col sm:flex-row gap-3">
@@ -550,13 +542,14 @@ const RecipeVault = () => {
             <Award size={16} className="text-gold" />
             <h2 className="font-slab text-sm font-semibold">{RECIPE.featuredRecipes}</h2>
           </div>
-          <div className="space-y-2">
+          <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x snap-mandatory">
             {featured!.map((recipe: any) => (
-              <FeaturedCard
-                key={recipe.id}
-                recipe={recipe}
-                onSelect={() => navigate(`/recipe/${recipe.id}`)}
-              />
+              <div key={recipe.id} className="snap-start">
+                <FeaturedCard
+                  recipe={recipe}
+                  onSelect={() => navigate(`/recipe/${recipe.id}`)}
+                />
+              </div>
             ))}
           </div>
         </div>
@@ -596,17 +589,6 @@ const RecipeVault = () => {
         </div>
       )}
 
-      {/* Featured Lab Partner */}
-      <div className="mt-8 glass-panel rounded-xl p-5 border-copper/20 flex flex-col sm:flex-row items-start sm:items-center gap-4">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-gold/20 to-copper/20 flex items-center justify-center shrink-0">
-          <FlaskConical size={24} className="text-copper" />
-        </div>
-        <div className="flex-1">
-          <p className="text-[10px] uppercase tracking-widest text-copper font-semibold mb-1">Featured Yeast — Lab Partner</p>
-          <p className="text-sm font-medium">Belgian Saison WLP565</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Perfect for farmhouse ales. High attenuation, complex phenolics. Supplied by BrewCraft Yeasts.</p>
-        </div>
-      </div>
     </div>
   );
 };

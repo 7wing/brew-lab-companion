@@ -24,6 +24,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useRecipe, useRecipeStages, useUpdateRecipe, useDeleteRecipe } from "@/hooks/useRecipes";
@@ -281,12 +290,32 @@ const RecipeDetail = () => {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={handleDelete}
-                    className="flex items-center gap-2 text-destructive focus:text-destructive cursor-pointer"
-                  >
-                    <Trash2 size={14} /> {ACTIONS.delete}
-                  </DropdownMenuItem>
+                  <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+                    <DialogTrigger asChild>
+                      <DropdownMenuItem
+                        onSelect={(e) => e.preventDefault()}
+                        className="flex items-center gap-2 text-destructive focus:text-destructive cursor-pointer"
+                      >
+                        <Trash2 size={14} /> {ACTIONS.delete}
+                      </DropdownMenuItem>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md max-w-full">
+                      <DialogHeader>
+                        <DialogTitle className="font-slab">Delete {recipe.title}?</DialogTitle>
+                        <DialogDescription>
+                          This will permanently delete this recipe. This cannot be undone.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <DialogFooter>
+                        <Button variant="ghost" onClick={() => setShowDeleteConfirm(false)}>
+                          Cancel
+                        </Button>
+                        <Button variant="destructive" onClick={handleDelete}>
+                          {ACTIONS.delete}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </>
               ) : (
                 <>
@@ -386,7 +415,7 @@ const RecipeDetail = () => {
         )}
       </div>
 
-      {/* ─── Brew This (primary CTA) ─────────────────────────────────────── */}
+      {/* ─── Brew this (primary CTA) ─────────────────────────────────────── */}
       <Link
         to={`/new-brew?recipeId=${recipe.id}`}
         className="block w-full text-center px-6 py-3.5 rounded-xl bg-gradient-to-r from-copper to-copper/80 text-copper-foreground font-slab font-semibold text-base shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 mb-6"
@@ -582,7 +611,7 @@ const RecipeDetail = () => {
         </div>
       </div>
 
-      {/* ─── Brew This (repeated CTA) ────────────────────────────────────── */}
+      {/* ─── Brew this (repeated CTA) ────────────────────────────────────── */}
       <Link
         to={`/new-brew?recipeId=${recipe.id}`}
         className="block w-full text-center px-6 py-3.5 rounded-xl bg-gradient-to-r from-copper to-copper/80 text-copper-foreground font-slab font-semibold text-base shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"

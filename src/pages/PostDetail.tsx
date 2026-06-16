@@ -50,6 +50,7 @@ export default function PostDetail() {
   const [openOptionsId, setOpenOptionsId] = useState<string | null>(null)
   const [openPostOptions, setOpenPostOptions] = useState(false)
   const [postMenuAnchor, setPostMenuAnchor] = useState<{ x: number; y: number } | null>(null)
+  const [commentMenuAnchor, setCommentMenuAnchor] = useState<{ x: number; y: number } | null>(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
 
   const qc = useQueryClient()
@@ -318,6 +319,7 @@ export default function PostDetail() {
                           onClick={(e) => {
                             e.stopPropagation()
                             setOpenOptionsId(openOptionsId === comment.id ? null : comment.id)
+                            setCommentMenuAnchor({ x: e.clientX, y: e.clientY })
                           }}
                           className="p-1 rounded hover:bg-muted"
                         >
@@ -328,7 +330,7 @@ export default function PostDetail() {
                           <div className="fixed inset-0 z-50" onClick={() => setOpenOptionsId(null)}>
                             <div
                               className="absolute bg-background border border-border rounded-xl shadow-xl py-1 min-w-[140px] z-10"
-                              style={{ top: e?.clientY ?? 0, right: 16 }}
+                              style={{ top: commentMenuAnchor?.y ?? 0, right: 16 }}
                               onClick={(e) => e.stopPropagation()}
                             >
                               {isCommentOwner ? (

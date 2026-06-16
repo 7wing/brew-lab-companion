@@ -573,6 +573,66 @@ const Profile = () => {
     );
   }
 
+  const sidebarContent = (
+    <>
+      <div className="border-t border-border/40 pt-4">
+        <h3 className="font-slab font-semibold text-xs uppercase tracking-wide text-muted-foreground mb-3 flex items-center gap-1.5">
+          <Award size={12} className="text-gold" />
+          {copy.profile.badges ?? "Awards & Badges"}
+        </h3>
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+          {(allBadges ?? []).map((badge: any) => {
+            const earned = earnedIds.has(badge.id);
+            const earnedBadge = earnedMap[badge.id];
+            return (
+              <div
+                key={badge.id}
+                title={badge.description}
+                className={`flex flex-col items-center p-3 rounded-lg text-center transition-colors ${
+                  earned
+                    ? "bg-gold/10 border border-gold/30"
+                    : "bg-muted/10 border border-border/20 opacity-40"
+                }`}
+              >
+                <span className="text-2xl leading-none mb-1">{badge.icon_url || "🏅"}</span>
+                <p className={`text-[10px] font-medium leading-tight ${earned ? "text-foreground" : "text-muted-foreground"}`}>
+                  {badge.name}
+                </p>
+                {earned && earnedBadge?.awarded_at && (
+                  <p className="text-[9px] text-muted-foreground mt-0.5">
+                    {new Date(earnedBadge.awarded_at).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div className="border-t border-border/40 pt-4">
+        <h3 className="font-slab font-semibold text-xs uppercase tracking-wide text-muted-foreground mb-3 flex items-center gap-1.5">
+          <Beaker size={12} className="text-teal" />
+          {copy.profile.labStats}
+        </h3>
+        <div className="grid grid-cols-2 gap-3">
+          {[
+            { label: copy.profile.totalBatches, value: statsBatches, accent: "text-copper" },
+            { label: copy.profile.completedBatches, value: completedBatches.length, accent: "text-teal" },
+            { label: copy.profile.avgBrewDays, value: avgBrewDays > 0 ? `${avgBrewDays}d` : "—", accent: "text-gold" },
+            { label: copy.profile.favouriteStyle, value: favouriteStyle, accent: "text-copper" },
+          ].map((stat, i) => (
+            <div
+              key={i}
+              className="flex flex-col items-center p-3 rounded-lg bg-muted/20 border border-border/20 text-center"
+            >
+              <p className={`text-2xl font-mono font-bold ${stat.accent}`}>{stat.value}</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide mt-0.5">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+
   return (
     <div className="animate-fade-in max-w-3xl mx-auto space-y-4">
       {/* ── Cover Photo ─────────────────────────────────────────────────────── */}
@@ -730,68 +790,11 @@ const Profile = () => {
           ))}
         </div>
 
-        {/* ── Awards & Badges ──────────────────────────────────────────────── */}
-        <div className="border-t border-border/40 pt-4 mt-4">
-          <h3 className="font-slab font-semibold text-xs uppercase tracking-wide text-muted-foreground mb-3 flex items-center gap-1.5">
-            <Award size={12} className="text-gold" />
-            Awards & Badges
-          </h3>
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-            {(allBadges ?? []).map((badge: any) => {
-              const earned = earnedIds.has(badge.id)
-              const earnedBadge = earnedMap[badge.id]
-              return (
-                <div
-                  key={badge.id}
-                  title={badge.description}
-                  className={`flex flex-col items-center p-3 rounded-lg text-center transition-colors ${
-                    earned
-                      ? 'bg-gold/10 border border-gold/30'
-                      : 'bg-muted/10 border border-border/20 opacity-40'
-                  }`}
-                >
-                  <span className="text-2xl leading-none mb-1">{badge.icon_url || '🏅'}</span>
-                  <p className={`text-[10px] font-medium leading-tight ${earned ? 'text-foreground' : 'text-muted-foreground'}`}>
-                    {badge.name}
-                  </p>
-                  {earned && earnedBadge?.awarded_at && (
-                    <p className="text-[9px] text-muted-foreground mt-0.5">
-                      {new Date(earnedBadge.awarded_at).toLocaleDateString()}
-                    </p>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* ── Lab Stats ──────────────────────────────────────────────────────── */}
-        <div className="border-t border-border/40 pt-4 mt-4">
-          <h3 className="font-slab font-semibold text-xs uppercase tracking-wide text-muted-foreground mb-3 flex items-center gap-1.5">
-            <Beaker size={12} className="text-teal" />
-            {copy.profile.labStats}
-          </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {[
-              { label: copy.profile.totalBatches, value: statsBatches, accent: "text-copper" },
-              { label: copy.profile.completedBatches, value: completedBatches.length, accent: "text-teal" },
-              { label: copy.profile.avgBrewDays, value: avgBrewDays > 0 ? `${avgBrewDays}d` : "—", accent: "text-gold" },
-              { label: copy.profile.favouriteStyle, value: favouriteStyle, accent: "text-copper" },
-            ].map((stat, i) => (
-              <div
-                key={i}
-                className="flex flex-col items-center p-3 rounded-lg bg-muted/20 border border-border/20 text-center"
-              >
-                <p className={`text-2xl font-mono font-bold ${stat.accent}`}>{stat.value}</p>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wide mt-0.5">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
 
       {/* ── Tabs ─────────────────────────────────────────────────────────────── */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <div className="xl:grid xl:grid-cols-[1fr_280px] gap-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full min-w-0">
         <TabsList className="w-full justify-start gap-1 flex-wrap h-auto p-1">
           <TabsTrigger value="brewlogs" className="text-xs gap-1.5">
             <FileText size={13} />
@@ -1043,6 +1046,13 @@ const Profile = () => {
           </div>
         </TabsContent>
       </Tabs>
+      <aside className="hidden xl:block space-y-4">
+        {sidebarContent}
+      </aside>
+      </div>
+      <div className="xl:hidden mt-6 space-y-4">
+        {sidebarContent}
+      </div>
 
       {/* ── Account Settings (own profile only) ──────────────────────────────── */}
       {isOwnProfile && (
