@@ -7,7 +7,7 @@
 2. Public vs Private Access
 3. Landing Page
 4. Navigation
-5. Onboarding Flow
+5. REMOVED BY ME
 6. Brew Bench
 7. Recipes Page
 8. Recipe Detail Page
@@ -129,56 +129,7 @@ The profile avatar shows the user's initials. Clicking it opens a dropdown with 
 
 ---
 
-## 5. Onboarding Flow
-
-Triggered immediately after a new user signs up. 4 steps, skippable at any point. Personalises the experience before the user reaches the Brew Bench.
-
-### Step 1 — What you brew
-```
-Welcome to Homebrew Haven 🍺
-What do you like to brew? (select all that apply)
-
-[ Beer ] [ Cider ] [ Mead ] [ Kombucha ] [ Wine ] [ Sourdough ]
-
-[ Continue ] [ Skip for now ]
-```
-Used to personalise recipe suggestions and community content.
-
-### Step 2 — Experience level
-```
-How long have you been brewing?
-
-[ Just starting out ]
-[ 1–2 years ]
-[ 3–5 years ]
-[ 5+ years ]
-
-[ Continue ] [ Skip for now ]
-```
-Used to set default recipe difficulty and surface relevant onboarding tips.
-
-### Step 3 — Log your first batch (optional)
-```
-Do you have something brewing right now?
-
-[ Yes, let's log it → ] [ Not yet, I'll look around first ]
-```
-If yes — goes directly into the New Brew stepped form.
-If no — goes to the Brew Bench with a friendly empty state and a prompt to start a new brew.
-
-### Step 4 — Follow some brewers
-```
-Here are some brewers you might like
-
-[ avatar ] hoppy_brewer — IPA specialist ———— [ Follow ]
-[ avatar ] meadmaker_mike — Mead expert ———— [ Follow ]
-[ avatar ] sourdough_sam — Fermentation nerd — [ Follow ]
-
-[ Go to Brew Bench ] [ Skip for now ]
-```
-Suggestions are seeded based on brew types selected in Step 1. Gets the Following feed populated immediately so Community does not feel empty on day one.
-
----
+I HAVE REMOVED 5 HERE BY MYSELF!
 
 ## 6. Brew Bench
 
