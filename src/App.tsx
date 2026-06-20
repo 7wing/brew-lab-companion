@@ -20,7 +20,6 @@ import RecipeDetail from "./pages/RecipeDetail";
 import BrewSetup from "./pages/BrewSetup";
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
-import Search from "./pages/Search";
 import NotFound from "./pages/NotFound";
 
 import AdminLayout from "./components/AdminLayout";
@@ -71,7 +70,6 @@ function ProtectedRoutes() {
             </ProtectedRoute>
           }
         />
-        <Route path="/monitor" element={<Navigate to="/" replace />} />
         <Route
           path="/community"
           element={
@@ -134,14 +132,6 @@ function ProtectedRoutes() {
           element={
             <ProtectedRoute>
               <RecipeDetail />
-            </ProtectedRoute>
-          }
-        />
-<Route
-          path="/search"
-          element={
-            <ProtectedRoute>
-              <Search />
             </ProtectedRoute>
           }
         />

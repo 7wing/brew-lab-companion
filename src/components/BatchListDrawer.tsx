@@ -1,5 +1,6 @@
+import { useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, X } from "lucide-react";
 import { useMobileBatchDrawer } from "@/hooks/useMobileBatchDrawer";
 import { LIFECYCLE_ORDER, LIFECYCLE_LABELS, LifecycleStatus } from "@/lib/lifecycle";
 import {
@@ -68,11 +69,16 @@ function BatchListContent({
   batches,
   selectedBatchId,
   onSelect,
+  mode,
 }: {
   batches: Batch[];
   selectedBatchId?: string;
   onSelect: (id: string) => void;
+  mode: "mobile" | "desktop";
 }) {
+  const { filterStage, setFilterStage } = useMobileBatchDrawer();
+  const stageRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
   // Group batches by lifecycle stage
   const batchesByStage = LIFECYCLE_ORDER.reduce(
     (acc, stage) => {
@@ -87,6 +93,21 @@ function BatchListContent({
     (stage) => batchesByStage[stage].length > 0
   );
 
+  // On desktop: scroll to filtered stage
+  useEffect(() => {
+    if (mode === "desktop" && filterStage && stageRefs.current[filterStage]) {
+      stageRefs.current[filterStage]?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+    }
+  }, [filterStage, mode]);
+
+  // Mobile: filter to single stage when set; desktop: always show all
+  const stagesToShow =
+    mode === "mobile" && filterStage
+      ? activeStages.filter((s) => s === filterStage)
+      : activeStages;
+
+  const showClearFilter = mode === "mobile" && filterStage !== null;
+
   if (activeStages.length === 0) {
     return (
       <div className="p-4 text-center text-muted-foreground text-sm">
@@ -97,10 +118,25 @@ function BatchListContent({
 
   return (
     <div className="flex-1 overflow-y-auto">
-      {activeStages.map((stage) => {
+      {showClearFilter && (
+        <div className="px-3 py-2">
+          <button
+            onClick={() => setFilterStage(null)}
+            className="flex items-center gap-1.5 text-xs text-copper hover:text-copper/80 transition-colors"
+          >
+            <X size={14} />
+            Show all stages
+          </button>
+        </div>
+      )}
+      {stagesToShow.map((stage) => {
         const stageBatches = batchesByStage[stage];
         return (
-          <div key={stage} className="mb-4">
+          <div
+            key={stage}
+            ref={(el) => { stageRefs.current[stage] = el; }}
+            className="mb-4"
+          >
             <div className="px-3 py-2">
               <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {LIFECYCLE_LABELS[stage]} ({stageBatches.length})
@@ -126,11 +162,18 @@ function BatchListContent({
 // Combined BatchListDrawer component that handles both mobile (Sheet) and desktop (sidebar)
 function BatchListDrawer({ batches, selectedBatchId }: BatchListDrawerProps) {
   const navigate = useNavigate();
-  const { open, setOpen } = useMobileBatchDrawer();
+  const { open, setOpen, filterStage, setFilterStage } = useMobileBatchDrawer();
 
   const handleSelect = (id: string) => {
     navigate(`/batch/${id}`);
   };
+
+  // Clear filter when mobile drawer closes
+  useEffect(() => {
+    if (!open && filterStage) {
+      setFilterStage(null);
+    }
+  }, [open, filterStage, setFilterStage]);
 
   return (
     <>
@@ -150,6 +193,7 @@ function BatchListDrawer({ batches, selectedBatchId }: BatchListDrawerProps) {
                 handleSelect(id);
                 setOpen(false);
               }}
+              mode="mobile"
             />
           </SheetContent>
         </Sheet>
@@ -164,6 +208,7 @@ function BatchListDrawer({ batches, selectedBatchId }: BatchListDrawerProps) {
           batches={batches}
           selectedBatchId={selectedBatchId}
           onSelect={handleSelect}
+          mode="desktop"
         />
       </aside>
     </>

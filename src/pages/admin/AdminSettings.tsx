@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { useAdminSettings } from '@/hooks/useAdmin'
-import { Settings, FlaskConical, Shield, Toggle } from 'lucide-react'
+import { Settings, FlaskConical, Shield } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
@@ -11,10 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { toast } from 'sonner'
 
 export default function AdminSettings() {
   const { data: settings, isLoading } = useAdminSettings()
+  const [maintenanceMessage, setMaintenanceMessage] = useState('')
 
   const handleToggle = (key: keyof typeof settings, value: boolean) => {
     // In a full implementation, this would call a mutation to update settings
@@ -86,20 +89,36 @@ export default function AdminSettings() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <Label htmlFor="maintenance" className="font-medium">
-                Maintenance Mode
-              </Label>
-              <p className="text-sm text-muted-foreground">
-                Block non-admin users from accessing the site
-              </p>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label htmlFor="maintenance" className="font-medium">
+                  Maintenance Mode
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Block non-admin users from accessing the site
+                </p>
+              </div>
+              <Switch
+                id="maintenance"
+                checked={settings?.maintenance_mode ?? false}
+                onCheckedChange={(v) => handleToggle('maintenance_mode', v)}
+              />
             </div>
-            <Switch
-              id="maintenance"
-              checked={settings?.maintenance_mode ?? false}
-              onCheckedChange={(v) => handleToggle('maintenance_mode', v)}
-            />
+            {settings?.maintenance_mode && (
+              <div>
+                <Label htmlFor="maintenance-msg" className="font-medium">
+                  Maintenance message
+                </Label>
+                <Textarea
+                  id="maintenance-msg"
+                  value={maintenanceMessage}
+                  onChange={(e) => setMaintenanceMessage(e.target.value)}
+                  placeholder="Enter a message to display during maintenance..."
+                  rows={2}
+                />
+              </div>
+            )}
           </div>
 
           <div className="flex items-center justify-between">
@@ -111,11 +130,18 @@ export default function AdminSettings() {
                 Show challenges in the community page
               </p>
             </div>
-            <Switch
-              id="challenge-vis"
-              checked={settings?.challenge_visibility ?? true}
-              onCheckedChange={(v) => handleToggle('challenge_visibility', v)}
-            />
+            <Select
+              value={settings?.challenge_visibility ?? 'community_visible'}
+              onValueChange={(v) => handleSelect('challenge_visibility', v)}
+            >
+              <SelectTrigger className="w-52">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="official_only">Official only</SelectItem>
+                <SelectItem value="community_visible">Community challenges visible</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>

@@ -17,9 +17,10 @@ import {
   Package,
   X,
   ExternalLink,
+  MoreHorizontal,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { copy } from "@/constants/copy";
@@ -38,15 +39,23 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useYeastBank, useAddYeastStrain, useDeleteYeastStrain } from "@/hooks/useYeastBank";
 import { useBadges, useUserBadges, useAwardBadges } from "@/hooks/useUserBadges";
-import { useBatches } from "@/hooks/useBatches";
-import { useRecipes } from "@/hooks/useRecipes";
-import { usePosts } from "@/hooks/usePosts";
+import { useBatches, useUpdateBatch } from "@/hooks/useBatches";
+import { useRecipes, useDeleteRecipe } from "@/hooks/useRecipes";
+import { usePosts, useDeletePost } from "@/hooks/usePosts";
+import { useDeleteBatch } from "@/hooks/useDeleteBatch";
 import { useUpload } from "@/hooks/useUpload";
 import { useAuth } from "@/contexts/AuthContext";
 import ThemeToggle from "@/components/ThemeToggle";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
 import {
   useIsFollowing,
   useFollowerCount,
@@ -237,13 +246,13 @@ function EditProfileDialog({ open, onClose, profile, updateProfile }: EditProfil
   const [editLocation, setEditLocation] = useState("");
 
   // Sync state when dialog opens
-  useState(() => {
+  useEffect(() => {
     if (open) {
       setEditDisplayName(profile?.display_name || "");
       setEditBio(profile?.bio || "");
       setEditLocation(profile?.location || "");
     }
-  });
+  }, [open, profile]);
 
   async function handleSaveProfile() {
     try {
@@ -379,6 +388,41 @@ function AddYeastDialog({ open, onClose, addYeast }: AddYeastDialogProps) {
   );
 }
 
+// ─── Confirm Dialog ─────────────────────────────────────────────────────────
+
+function ConfirmDialog({
+  open,
+  onClose,
+  onConfirm,
+  title,
+  description,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  description: string;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md max-w-full">
+        <DialogHeader>
+          <DialogTitle className="font-slab">{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" size="sm" onClick={onClose}>
+            {copy.common.cancel}
+          </Button>
+          <Button variant="destructive" size="sm" onClick={onConfirm}>
+            {copy.common.delete}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ─── Star Rating ────────────────────────────────────────────────────────────
 
 function StarRating({ value }: { value: number | null }) {
@@ -394,6 +438,40 @@ function StarRating({ value }: { value: number | null }) {
       ))}
     </div>
   );
+}
+
+function getSrmColor(srm: number | null | undefined): string {
+  if (srm == null) return "#d4d4d4";
+  if (srm <= 2) return "#F3F993";
+  if (srm <= 3) return "#F5F75C";
+  if (srm <= 4) return "#F6F513";
+  if (srm <= 5) return "#EAE615";
+  if (srm <= 6) return "#E0D01B";
+  if (srm <= 7) return "#D5BC26";
+  if (srm <= 8) return "#CDAA37";
+  if (srm <= 9) return "#C1963C";
+  if (srm <= 10) return "#BE8C3A";
+  if (srm <= 11) return "#BE823A";
+  if (srm <= 12) return "#C17A37";
+  if (srm <= 13) return "#BF7138";
+  if (srm <= 14) return "#BC6733";
+  if (srm <= 15) return "#B26033";
+  if (srm <= 16) return "#A85839";
+  if (srm <= 17) return "#A05039";
+  if (srm <= 18) return "#9A4A39";
+  if (srm <= 19) return "#944538";
+  if (srm <= 20) return "#8E3F39";
+  if (srm <= 21) return "#883A39";
+  if (srm <= 22) return "#823335";
+  if (srm <= 23) return "#7B2F34";
+  if (srm <= 24) return "#752C34";
+  if (srm <= 25) return "#6F2832";
+  if (srm <= 26) return "#6A2331";
+  if (srm <= 27) return "#641F2F";
+  if (srm <= 28) return "#5E1B2D";
+  if (srm <= 29) return "#59172B";
+  if (srm <= 30) return "#54142A";
+  return "#3B0F21";
 }
 
 // ─── Profile Page ───────────────────────────────────────────────────────────
@@ -436,12 +514,36 @@ const Profile = () => {
   const followMutation = useFollow();
   const unfollowMutation = useUnfollow();
 
+  const queryClient = useQueryClient();
+
   // Data hooks
   const { data: batches } = useBatches();
   const { data: recipes } = useRecipes();
   const { data: yeastStrains, isLoading: yeastLoading } = useYeastBank();
   const addYeast = useAddYeastStrain();
   const deleteYeast = useDeleteYeastStrain();
+  const deleteBatch = useDeleteBatch();
+  const updateBatch = useUpdateBatch();
+  const deleteRecipe = useDeleteRecipe();
+  const deletePost = useDeletePost();
+
+  const updateYeast = useMutation({
+    mutationFn: async ({
+      id,
+      ...fields
+    }: {
+      id: string;
+      name: string;
+      strain_code?: string | null;
+      notes?: string | null;
+      source?: string | null;
+      generation?: number | null;
+    }) => {
+      const { error } = await supabase.from("yeast_bank").update(fields).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["yeast-bank"] }),
+  });
 
   // Brew logs for viewed profile
   const { data: userPosts } = usePosts(undefined, 1, "latest", targetId);
@@ -462,6 +564,16 @@ const Profile = () => {
   const [newYeastOpen, setNewYeastOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("brewlogs");
   const [recipeTab, setRecipeTab] = useState<"mine" | "saved">("mine");
+
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: "batch" | "recipe" | "post" | "yeast"; id: string } | null>(null);
+
+  const [editingYeastId, setEditingYeastId] = useState<string | null>(null);
+  const [editYeastName, setEditYeastName] = useState("");
+  const [editYeastCode, setEditYeastCode] = useState("");
+  const [editYeastNotes, setEditYeastNotes] = useState("");
+  const [editYeastSource, setEditYeastSource] = useState("");
+  const [editYeastGeneration, setEditYeastGeneration] = useState("");
 
   // ─── Handlers ───────────────────────────────────────────────────────────────
 
@@ -742,6 +854,23 @@ const Profile = () => {
             <p className="text-xs text-muted-foreground mt-2">
               {profile?.bio || copy.profile.noBioYet}
             </p>
+            {(profile?.brewing_since || profile?.favourite_styles) && (
+              <div className="flex flex-wrap gap-2 mt-2">
+                {profile?.brewing_since && (
+                  <span className="text-[10px] text-muted-foreground">
+                    Brewing since {new Date(profile.brewing_since).toLocaleDateString()}
+                  </span>
+                )}
+                {profile?.favourite_styles && (
+                  <span className="text-[10px] text-muted-foreground">
+                    Favourite styles:{" "}
+                    {Array.isArray(profile.favourite_styles)
+                      ? profile.favourite_styles.join(", ")
+                      : profile.favourite_styles}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -845,6 +974,38 @@ const Profile = () => {
                       <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">
                         {post.category?.replace("_", " ")}
                       </span>
+                      {isOwnProfile && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              className="p-1 rounded-md hover:bg-muted text-muted-foreground"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreHorizontal size={14} />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-40">
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/community?edit=${post.id}`);
+                              }}
+                            >
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDeleteTarget({ type: "post", id: post.id });
+                                setDeleteConfirmOpen(true);
+                              }}
+                            >
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
                     </div>
                     <h3 className="text-sm font-semibold mb-1 line-clamp-1">{post.title}</h3>
                     <p className="text-xs text-muted-foreground line-clamp-2">{post.content}</p>
@@ -896,18 +1057,49 @@ const Profile = () => {
               (recipeTab === "mine" ? myRecipes : savedRecipes).map((recipe: any) => (
                 <div
                   key={recipe.id}
-                  className="glass-panel rounded-xl p-4 hover:bg-muted/20 transition-colors cursor-pointer"
-                  onClick={() => navigate(`/recipes/${recipe.id}`)}
+                  className="glass-panel rounded-xl p-4 hover:bg-muted/20 transition-colors relative"
                 >
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <h3 className="text-sm font-semibold line-clamp-1">{recipe.title}</h3>
-                    {recipe.starred && <Star size={14} className="text-gold fill-gold shrink-0" />}
+                  <div className="flex items-start justify-between gap-2">
+                    <h3
+                      className="text-sm font-semibold line-clamp-1 cursor-pointer"
+                      onClick={() => navigate(`/recipes/${recipe.id}`)}
+                    >
+                      {recipe.title}
+                    </h3>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {recipe.starred && <Star size={14} className="text-gold fill-gold" />}
+                      {isOwnProfile && (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button className="p-1 rounded-md hover:bg-muted text-muted-foreground">
+                              <MoreHorizontal size={14} />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-40">
+                            <DropdownMenuItem onClick={() => navigate(`/recipes/${recipe.id}/edit`)}>
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => {
+                                setDeleteTarget({ type: "recipe", id: recipe.id });
+                                setDeleteConfirmOpen(true);
+                              }}
+                            >
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex flex-wrap gap-2 text-[10px] text-muted-foreground">
+                  <div className="flex flex-wrap gap-2 mt-2 text-[10px] text-muted-foreground">
                     {recipe.type && (
                       <span className="px-2 py-0.5 rounded-full bg-muted capitalize">{recipe.type}</span>
                     )}
                     {recipe.style && <span>{recipe.style}</span>}
+                  </div>
+                  <div className="mt-1 text-[10px] text-muted-foreground">
                     {recipe.abv != null && <span>{recipe.abv}% ABV</span>}
                   </div>
                   {recipe.moderation_status === "rejected" && (
@@ -929,19 +1121,68 @@ const Profile = () => {
                 {activeBatches.map((batch: any) => (
                   <div
                     key={batch.id}
-                    className="glass-panel rounded-xl p-4 hover:bg-muted/20 transition-colors cursor-pointer"
+                    className="glass-panel rounded-xl p-4 hover:bg-muted/20 transition-colors cursor-pointer relative"
                     onClick={() => navigate(`/batches/${batch.id}`)}
                   >
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <h3 className="text-sm font-semibold line-clamp-1">{batch.name}</h3>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal/20 text-teal capitalize shrink-0">
-                        {batch.status}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal/20 text-teal capitalize shrink-0">
+                          {batch.status}
+                        </span>
+                        {isOwnProfile && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                className="p-1 rounded-md hover:bg-muted text-muted-foreground shrink-0"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MoreHorizontal size={14} />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-40">
+                              {batch.status !== "finished" && batch.status !== "batch_shelf" && (
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateBatch.mutate({ id: batch.id, status: "finished" as BatchStatus });
+                                  }}
+                                >
+                                  Mark as finished
+                                </DropdownMenuItem>
+                              )}
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteTarget({ type: "batch", id: batch.id });
+                                  setDeleteConfirmOpen(true);
+                                }}
+                              >
+                                Delete batch
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-2 text-[10px] text-muted-foreground">
-                      {batch.type && <span className="capitalize">{batch.type}</span>}
+                    <div className="flex items-center flex-wrap gap-2 text-[10px] text-muted-foreground">
+                      {batch.type && (
+                        <span className="flex items-center gap-1 capitalize">
+                          <span
+                            className="inline-block w-3 h-3 rounded-full"
+                            style={{ backgroundColor: getSrmColor(batch.srm) }}
+                          />
+                          {batch.type}
+                        </span>
+                      )}
                       {batch.srm != null && <span>SRM {batch.srm}</span>}
                       {batch.og != null && <span>OG {batch.og}</span>}
+                      {batch.current_volume > 0 ? (
+                        <span>{batch.current_volume} gal left</span>
+                      ) : (
+                        <span>Empty</span>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -959,18 +1200,57 @@ const Profile = () => {
                 {finishedBatches.map((batch: any) => (
                   <div
                     key={batch.id}
-                    className="glass-panel rounded-xl p-4 hover:bg-muted/20 transition-colors cursor-pointer"
+                    className="glass-panel rounded-xl p-4 hover:bg-muted/20 transition-colors cursor-pointer relative"
                     onClick={() => navigate(`/batches/${batch.id}`)}
                   >
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <h3 className="text-sm font-semibold line-clamp-1">{batch.name}</h3>
-                      <StarRating value={batch.star_rating} />
+                      <div className="flex items-center gap-2">
+                        <StarRating value={batch.star_rating} />
+                        {isOwnProfile && (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                className="p-1 rounded-md hover:bg-muted text-muted-foreground shrink-0"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MoreHorizontal size={14} />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-40">
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setDeleteTarget({ type: "batch", id: batch.id });
+                                  setDeleteConfirmOpen(true);
+                                }}
+                              >
+                                Delete batch
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        )}
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-2 text-[10px] text-muted-foreground">
-                      {batch.type && <span className="capitalize">{batch.type}</span>}
+                    <div className="flex items-center flex-wrap gap-2 text-[10px] text-muted-foreground">
+                      {batch.type && (
+                        <span className="flex items-center gap-1 capitalize">
+                          <span
+                            className="inline-block w-3 h-3 rounded-full"
+                            style={{ backgroundColor: getSrmColor(batch.srm) }}
+                          />
+                          {batch.type}
+                        </span>
+                      )}
                       {batch.srm != null && <span>SRM {batch.srm}</span>}
                       {batch.completed_date && (
                         <span>{new Date(batch.completed_date).toLocaleDateString()}</span>
+                      )}
+                      {batch.current_volume > 0 ? (
+                        <span>{batch.current_volume} gal left</span>
+                      ) : (
+                        <span>Empty</span>
                       )}
                     </div>
                   </div>
@@ -1012,35 +1292,130 @@ const Profile = () => {
               <p className="text-xs text-muted-foreground py-4 text-center">{copy.profile.noYeastStrainsYet}</p>
             ) : (
               <div className="space-y-2">
-                {(yeastStrains ?? []).map((y: any) => (
-                  <div
-                    key={y.id}
-                    className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 border border-border/20"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">{y.name}</p>
-                      {y.strain_code && (
-                        <p className="text-[10px] text-muted-foreground">{copy.profile.strainCode}: {y.strain_code}</p>
-                      )}
-                      <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-[10px] text-muted-foreground">
-                        {y.source && <span>{copy.profile.source}: {y.source}</span>}
-                        {y.generation != null && <span>{copy.profile.generation}: {y.generation}</span>}
-                        {y.storage_date && <span>{copy.profile.storageDate}: {new Date(y.storage_date).toLocaleDateString()}</span>}
-                        {y.viability_notes && <span>{copy.profile.viability}: {y.viability_notes}</span>}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() =>
-                        deleteYeast.mutate(y.id, {
-                          onError: (err: any) => toast.error(err?.message || copy.common.error),
-                        })
-                      }
-                      className="p-1.5 rounded-md hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                {(yeastStrains ?? []).map((y: any) => {
+                  const isEditing = editingYeastId === y.id;
+                  return (
+                    <div
+                      key={y.id}
+                      className="flex items-start gap-3 p-3 rounded-lg bg-muted/30 border border-border/20"
                     >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                ))}
+                      {isEditing ? (
+                        <div className="flex-1 min-w-0 space-y-2">
+                          <div className="grid grid-cols-2 gap-2">
+                            <Input
+                              value={editYeastName}
+                              onChange={(e) => setEditYeastName(e.target.value)}
+                              placeholder={copy.profile.yeastName}
+                              className="text-xs h-7"
+                            />
+                            <Input
+                              value={editYeastCode}
+                              onChange={(e) => setEditYeastCode(e.target.value)}
+                              placeholder={copy.profile.strainCode}
+                              className="text-xs h-7"
+                            />
+                            <Input
+                              value={editYeastSource}
+                              onChange={(e) => setEditYeastSource(e.target.value)}
+                              placeholder={copy.profile.source}
+                              className="text-xs h-7"
+                            />
+                            <Input
+                              value={editYeastGeneration}
+                              onChange={(e) => setEditYeastGeneration(e.target.value)}
+                              placeholder={copy.profile.generation}
+                              className="text-xs h-7"
+                            />
+                          </div>
+                          <Textarea
+                            value={editYeastNotes}
+                            onChange={(e) => setEditYeastNotes(e.target.value)}
+                            placeholder={copy.profile.notes}
+                            className="text-xs min-h-[60px]"
+                          />
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              className="text-xs h-7"
+                              onClick={() => {
+                                updateYeast.mutate({
+                                  id: y.id,
+                                  name: editYeastName,
+                                  strain_code: editYeastCode || null,
+                                  notes: editYeastNotes || null,
+                                  source: editYeastSource || null,
+                                  generation: editYeastGeneration ? Number(editYeastGeneration) : null,
+                                });
+                                setEditingYeastId(null);
+                              }}
+                            >
+                              Save
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="text-xs h-7"
+                              onClick={() => setEditingYeastId(null)}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium">{y.name}</p>
+                            {y.strain_code && (
+                              <p className="text-[10px] text-muted-foreground">
+                                {copy.profile.strainCode}: {y.strain_code}
+                              </p>
+                            )}
+                            <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 text-[10px] text-muted-foreground">
+                              {y.source && <span>{copy.profile.source}: {y.source}</span>}
+                              {y.generation != null && <span>{copy.profile.generation}: {y.generation}</span>}
+                              {y.storage_date && (
+                                <span>
+                                  {copy.profile.storageDate}: {new Date(y.storage_date).toLocaleDateString()}
+                                </span>
+                              )}
+                              {y.viability_notes && <span>{copy.profile.viability}: {y.viability_notes}</span>}
+                            </div>
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="p-1.5 rounded-md hover:bg-muted text-muted-foreground transition-colors shrink-0">
+                                <MoreHorizontal size={14} />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-40">
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setEditingYeastId(y.id);
+                                  setEditYeastName(y.name || "");
+                                  setEditYeastCode(y.strain_code || "");
+                                  setEditYeastNotes(y.notes || "");
+                                  setEditYeastSource(y.source || "");
+                                  setEditYeastGeneration(y.generation != null ? String(y.generation) : "");
+                                }}
+                              >
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => {
+                                  setDeleteTarget({ type: "yeast", id: y.id });
+                                  setDeleteConfirmOpen(true);
+                                }}
+                              >
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1112,6 +1487,35 @@ const Profile = () => {
         open={newYeastOpen}
         onClose={() => setNewYeastOpen(false)}
         addYeast={addYeast}
+      />
+
+      <ConfirmDialog
+        open={deleteConfirmOpen}
+        onClose={() => setDeleteConfirmOpen(false)}
+        title="Are you sure?"
+        description="This action cannot be undone."
+        onConfirm={() => {
+          if (!deleteTarget) return;
+          if (deleteTarget.type === "batch") {
+            deleteBatch.mutate(deleteTarget.id, {
+              onError: (err: any) => toast.error(err?.message || copy.common.error),
+            });
+          } else if (deleteTarget.type === "recipe") {
+            deleteRecipe.mutate(deleteTarget.id, {
+              onError: (err: any) => toast.error(err?.message || copy.common.error),
+            });
+          } else if (deleteTarget.type === "post") {
+            deletePost.mutate({ id: deleteTarget.id }, {
+              onError: (err: any) => toast.error(err?.message || copy.common.error),
+            });
+          } else if (deleteTarget.type === "yeast") {
+            deleteYeast.mutate(deleteTarget.id, {
+              onError: (err: any) => toast.error(err?.message || copy.common.error),
+            });
+          }
+          setDeleteConfirmOpen(false);
+          setDeleteTarget(null);
+        }}
       />
     </div>
   );

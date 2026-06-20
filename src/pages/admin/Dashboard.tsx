@@ -147,24 +147,28 @@ export default function Dashboard() {
       {/* Pending Queues */}
       <section>
         <SectionHeader title="Pending Moderation" />
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <MetricCard
-            title="Recipe Queue"
-            value={stats?.pendingRecipes ?? 0}
-            icon={FileCheck}
-            description="awaiting review"
-            accent="gold"
-            href="/admin/recipes"
-          />
-          <MetricCard
-            title="Reported Posts"
-            value={stats?.reportedPosts ?? 0}
-            icon={AlertCircle}
-            description="need attention"
-            accent="copper"
-            href="/admin/posts"
-          />
-        </div>
+        <Card>
+          <CardContent className="p-0">
+            <Link
+              to="/admin/recipes"
+              className="flex items-center justify-between px-4 py-3 hover:bg-muted/50 border-b border-border/50 transition-colors"
+            >
+              <span className="text-sm">
+                {stats?.pendingRecipes ?? 0} recipes pending review
+              </span>
+              <ArrowRight size={14} className="text-muted-foreground" />
+            </Link>
+            <Link
+              to="/admin/posts"
+              className="flex items-center justify-between px-4 py-3 hover:bg-muted/50 transition-colors"
+            >
+              <span className="text-sm">
+                {stats?.reportedPosts ?? 0} reported posts need attention
+              </span>
+              <ArrowRight size={14} className="text-muted-foreground" />
+            </Link>
+          </CardContent>
+        </Card>
       </section>
 
       {/* Recent Signups */}

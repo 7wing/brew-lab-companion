@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAdminUsers, useUpdateUserRole } from '@/hooks/useAdmin'
 import { Users, Search, ShieldAlert, ShieldCheck, Ban } from 'lucide-react'
+import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -116,6 +117,7 @@ export default function Users() {
             <TableHeader>
               <TableRow>
                 <TableHead>User</TableHead>
+                <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Joined</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -124,7 +126,7 @@ export default function Users() {
             <TableBody>
               {filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                     No users found
                   </TableCell>
                 </TableRow>
@@ -157,6 +159,14 @@ export default function Users() {
                       </div>
                     </TableCell>
                     <TableCell>
+                      <div className="text-sm">
+                        {user.email ?? '—'}
+                      </div>
+                      <p className="text-muted-foreground text-xs mt-0.5">
+                        Emails are not available in public API.
+                      </p>
+                    </TableCell>
+                    <TableCell>
                       <Badge
                         variant="outline"
                         className={roleColors[user.role ?? 'brewer']}
@@ -183,14 +193,28 @@ export default function Users() {
                             <SelectItem value="super_admin">Super Admin</SelectItem>
                           </SelectContent>
                         </Select>
-                        {/* Placeholder action buttons */}
-                        <Button variant="ghost" size="icon" className="h-8 w-8" title="Warn user (coming soon)">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-copper border-copper/30"
+                          onClick={() => toast('Warn user coming soon')}
+                        >
                           <ShieldAlert size={14} />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" title="Suspend user (coming soon)">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-teal border-teal/30"
+                          onClick={() => toast('Suspend user coming soon')}
+                        >
                           <ShieldCheck size={14} />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" title="Ban user (coming soon)">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-8 text-destructive border-destructive/30"
+                          onClick={() => toast('Ban user coming soon')}
+                        >
                           <Ban size={14} />
                         </Button>
                       </div>

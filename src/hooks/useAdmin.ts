@@ -594,7 +594,7 @@ export function useSendNotification() {
 export interface AdminSettings {
   moderation_mode: 'manual' | 'auto_approve'
   maintenance_mode: boolean
-  challenge_visibility: boolean
+  challenge_visibility: 'official_only' | 'community_visible'
 }
 
 export function useAdminSettings() {
@@ -607,7 +607,7 @@ export function useAdminSettings() {
       return {
         moderation_mode: 'manual',
         maintenance_mode: false,
-        challenge_visibility: true,
+        challenge_visibility: 'community_visible',
       }
     },
   })

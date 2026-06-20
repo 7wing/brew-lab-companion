@@ -5,8 +5,6 @@ import {
   Calendar,
   Search,
   Beaker,
-  Thermometer,
-  ArrowRightLeft,
   AlertCircle,
   Clock,
   CheckCircle2,
@@ -19,14 +17,7 @@ import BatchCard from "@/components/BatchCard";
 import BatchListDrawer from "@/components/BatchListDrawer";
 import { useBatches } from "@/hooks/useBatches";
 import { useAllReadings } from "@/hooks/useReadings";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Label } from "@/components/ui/label";
+import { useMobileBatchDrawer } from "@/hooks/useMobileBatchDrawer";
 import { BREW } from "@/constants/copy";
 import { LIFECYCLE_ORDER, LIFECYCLE_LABELS, LifecycleStatus } from "@/lib/lifecycle";
 
@@ -45,6 +36,13 @@ function nextAction(batch: any): string | undefined {
     .filter((s) => !s.completed)
     .sort((a, b) => (a.scheduled ?? "").localeCompare(b.scheduled ?? ""));
   return pending[0]?.name;
+}
+
+function checklistProgress(batch: any): number {
+  const stages = (batch.batch_stages ?? []) as Array<{ completed: boolean }>;
+  if (stages.length === 0) return 0;
+  const completed = stages.filter((s) => s.completed).length;
+  return (completed / stages.length) * 100;
 }
 
 interface UpcomingStage {
@@ -92,6 +90,7 @@ function UrgencyDot({ level }: { level: "overdue" | "today" | "upcoming" }) {
 const Index = () => {
   const { data: batches, isLoading } = useBatches();
   const { data: allReadings } = useAllReadings(5);
+  const { setOpen, setFilterStage } = useMobileBatchDrawer();
 
   // Build upcoming actions from all batch stages
   const upcomingActions = sortByUrgency(
@@ -127,6 +126,11 @@ const Index = () => {
       ["completed", "finished", "batch_shelf"].includes(b.status)
     )
     .slice(0, 3);
+
+  function handleViewAll(stage: LifecycleStatus) {
+    setFilterStage(stage);
+    setOpen(true);
+  }
 
   return (
     <div className="animate-fade-in">
@@ -287,13 +291,13 @@ const Index = () => {
                       {LIFECYCLE_LABELS[stage]}
                     </h2>
                     {stageBatches.length > 2 && (
-                      <Link
-                        to={`/?stage=${stage}`}
+                      <button
+                        onClick={() => handleViewAll(stage)}
                         className="text-sm text-copper hover:text-copper/80 transition-colors flex items-center gap-1"
                       >
                         View all {stageBatches.length} {LIFECYCLE_LABELS[stage].toLowerCase()}
                         <ChevronRight size={16} />
-                      </Link>
+                      </button>
                     )}
                   </div>
                   <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory xl:grid xl:grid-cols-2 xl:overflow-visible">
@@ -303,12 +307,17 @@ const Index = () => {
                           id={batch.id}
                           name={batch.name}
                           type={batch.type}
+                          status={batch.status}
                           gravity={batch.og ?? 1.0}
                           targetGravity={batch.target_fg ?? 1.0}
                           daysElapsed={daysSince(batch.start_date)}
                           totalDays={batch.target_days}
                           nextAction={nextAction(batch)}
                           style={batch.recipe?.title ?? undefined}
+                          checklistProgress={batch.status === "brew_day" ? checklistProgress(batch) : undefined}
+                          conditioningMethod={batch.conditioning_method ?? undefined}
+                          packagingMethod={batch.packaging_method ?? undefined}
+                          estimatedCompletion={batch.estimated_completion ? formatDate(batch.estimated_completion) : undefined}
                         />
                       </div>
                     ))}

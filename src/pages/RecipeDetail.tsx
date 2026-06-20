@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { useNavigate as useNav } from "react-router-dom";
+
 import { toast } from "sonner";
 import {
   ArrowLeft,
@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { useRecipe, useRecipeStages, useUpdateRecipe, useDeleteRecipe } from "@/hooks/useRecipes";
+import { useRecipe, useRecipeStages, useUpdateRecipe, useDeleteRecipe, useCreateRecipe } from "@/hooks/useRecipes";
 import { useAuth } from "@/contexts/AuthContext";
 import { RECIPE, ACTIONS } from "@/constants/copy";
 import type { Database } from "@/types/database";
@@ -152,6 +152,7 @@ const RecipeDetail = () => {
 
   const updateRecipe = useUpdateRecipe();
   const deleteRecipe = useDeleteRecipe();
+  const createRecipe = useCreateRecipe();
 
   const [saving, setSaving] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -215,15 +216,30 @@ const RecipeDetail = () => {
 
   const handleFork = async () => {
     if (!user) return;
-    // Fork: copy recipe with forked_from set to this recipe's id, title prefixed
-    const updateFn = useUpdateRecipe();
     try {
-      await updateFn.mutateAsync({
-        id: recipe.id,
-        forked_from: recipe.id,
+      const newRecipe = await createRecipe.mutateAsync({
         title: `${recipe.title} (Fork)`,
-      } as Parameters<typeof updateFn.mutateAsync>[0]);
+        type: recipe.type,
+        style: recipe.style,
+        description: recipe.description,
+        ingredients: recipe.ingredients,
+        steps: recipe.steps,
+        abv: recipe.abv,
+        ibu: recipe.ibu,
+        srm: recipe.srm,
+        target_og: recipe.target_og,
+        target_fg: recipe.target_fg,
+        estimated_days: recipe.estimated_days,
+        batch_size: recipe.batch_size,
+        difficulty: recipe.difficulty,
+        target_temp_f: recipe.target_temp_f,
+        yeast_strain: recipe.yeast_strain,
+        forked_from: recipe.id,
+        is_public: true,
+        moderation_status: "pending" as const,
+      });
       toast.success("Recipe forked");
+      navigate(`/recipe/${newRecipe.id}`);
     } catch {
       toast.error("Failed to fork recipe");
     }
@@ -272,6 +288,14 @@ const RecipeDetail = () => {
           <Button variant="ghost" size="sm" onClick={handleShare} className="gap-1.5">
             <Share2 size={15} />
             <span className="text-xs hidden sm:inline">{ACTIONS.share}</span>
+          </Button>
+
+          {/* Brew this (desktop) */}
+          <Button variant="ghost" size="sm" asChild className="hidden md:flex gap-1.5">
+            <Link to={`/new-brew?recipeId=${recipe.id}`}>
+              <Flame size={15} />
+              <span className="text-xs">Brew this</span>
+            </Link>
           </Button>
 
           {/* Options menu */}
@@ -360,9 +384,22 @@ const RecipeDetail = () => {
 
         {/* Author */}
         {!isOwner && (recipe as any).profiles && (
-          <p className="text-xs text-muted-foreground mt-1">
-            by <span className="text-foreground">@{(recipe as any).profiles?.username ?? "unknown"}</span>
-          </p>
+          <div className="flex items-center gap-1.5 mt-1">
+            {(recipe as any).profiles?.avatar_url ? (
+              <img
+                src={(recipe as any).profiles.avatar_url}
+                alt={(recipe as any).profiles?.username ?? "unknown"}
+                className="w-5 h-5 rounded-full object-cover shrink-0"
+              />
+            ) : (
+              <div className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-[10px] font-bold text-muted-foreground shrink-0">
+                {((recipe as any).profiles?.username ?? (recipe as any).profiles?.display_name ?? "?").charAt(0).toUpperCase()}
+              </div>
+            )}
+            <span className="text-xs text-muted-foreground">
+              @{(recipe as any).profiles?.username ?? "unknown"}
+            </span>
+          </div>
         )}
 
         {/* Star rating */}
@@ -418,7 +455,7 @@ const RecipeDetail = () => {
       {/* ─── Brew this (primary CTA) ─────────────────────────────────────── */}
       <Link
         to={`/new-brew?recipeId=${recipe.id}`}
-        className="block w-full text-center px-6 py-3.5 rounded-xl bg-gradient-to-r from-copper to-copper/80 text-copper-foreground font-slab font-semibold text-base shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 mb-6"
+        className="block w-full text-center px-6 py-3.5 rounded-xl bg-gradient-to-r from-copper to-copper/80 text-copper-foreground font-slab font-semibold text-base shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 mb-6 md:hidden"
       >
         {RECIPE.brewThis}
       </Link>

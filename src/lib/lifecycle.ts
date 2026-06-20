@@ -19,7 +19,7 @@ export const LIFECYCLE_ORDER: LifecycleStatus[] = [
 
 export const LIFECYCLE_LABELS: Record<LifecycleStatus, string> = {
   brew_day: "Brew day",
-  fermenting: "Fermenting",
+  fermenting: "Active fermentation",
   conditioning: "Conditioning",
   packaging: "Packaging",
   batch_shelf: "Batch shelf",

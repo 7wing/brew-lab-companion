@@ -2,13 +2,36 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Trophy, Clock, Users, Pencil, Trash2, Send, Star,
-  ChevronLeft, Loader2, FlaskConical, BarChart3, Award
+  ChevronLeft, Loader2, FlaskConical, BarChart3, Award,
+  Heart, MoreVertical, Medal
 } from "lucide-react";
 import { toast } from "sonner";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/lib/supabase";
 import { useChallengeDetail, useChallengeEntries, useJoinChallenge, useDeleteChallenge } from "@/hooks/useChallenges";
 import { useCreatePost } from "@/hooks/usePosts";
 import { useAuth } from "@/contexts/AuthContext";
 import { copy } from "@/constants/copy";
+import { formatPostTime, getInitial } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from "@/components/ui/avatar";
 
 const challengeTypeLabel: Record<string, string> = {
   official: "Official",
@@ -67,6 +90,7 @@ export default function ChallengeDetail() {
   const [submitTitle, setSubmitTitle] = useState("");
   const [submitContent, setSubmitContent] = useState("");
   const [showSubmitForm, setShowSubmitForm] = useState(false);
+  const [showAllLeaderboard, setShowAllLeaderboard] = useState(false);
 
   const { data: challenge, isLoading: challengeLoading } = useChallengeDetail(id ?? "");
   const { data: entries, isLoading: entriesLoading } = useChallengeEntries(id ?? "");
@@ -103,10 +127,12 @@ export default function ChallengeDetail() {
   const userEntry = entriesList.find((e: any) => e.user_id === user?.id);
   const hasJoined = !!userEntry;
 
-  const topEntries = [...entriesList]
+  const ratedEntries = [...entriesList]
     .filter((e: any) => e.rating != null)
-    .sort((a: any, b: any) => b.rating - a.rating)
-    .slice(0, 3);
+    .sort((a: any, b: any) => b.rating - a.rating);
+
+  const topEntries = ratedEntries.slice(0, 3);
+  const totalSubmissions = ratedEntries.length;
 
   function handleJoin() {
     joinChallenge.mutate(
@@ -143,7 +169,7 @@ export default function ChallengeDetail() {
         challenge_id: challenge.id,
       },
       {
-        onSuccess: (post) => {
+        onSuccess: () => {
           toast.success("Submission posted!");
           setSubmitTitle("");
           setSubmitContent("");
@@ -190,6 +216,25 @@ export default function ChallengeDetail() {
           </div>
           <h1 className="font-slab text-2xl md:text-3xl font-bold">{challenge.title}</h1>
         </div>
+        {isCreator && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="mt-1 p-2 rounded-lg glass-panel hover:bg-muted transition-colors shrink-0">
+                <MoreVertical size={18} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => navigate(`/challenge/${challenge.id}/edit`)}>
+                <Pencil size={14} className="mr-2" />
+                Edit
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowDeleteConfirm(true)} className="text-red-500 focus:text-red-500">
+                <Trash2 size={14} className="mr-2" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
       </div>
 
       {/* Info card */}
@@ -274,45 +319,36 @@ export default function ChallengeDetail() {
               Submit My Brew
             </button>
           )}
-          {isCreator && (
-            <>
-              <button
-                onClick={() => navigate(`/challenge/${challenge.id}/edit`)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-muted text-muted-foreground font-medium hover:bg-muted/80 transition-all"
-              >
-                <Pencil size={15} />
-                Edit
-              </button>
-              {!showDeleteConfirm ? (
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500/10 text-red-500 font-medium hover:bg-red-500/20 transition-all"
-                >
-                  <Trash2 size={15} />
-                  Delete
-                </button>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-red-500">Confirm delete?</span>
-                  <button
-                    onClick={handleDelete}
-                    disabled={deleteChallenge.isPending}
-                    className="px-3 py-1.5 rounded-lg bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-all disabled:opacity-50"
-                  >
-                    {deleteChallenge.isPending ? <Loader2 size={14} className="animate-spin" /> : "Yes, delete"}
-                  </button>
-                  <button
-                    onClick={() => setShowDeleteConfirm(false)}
-                    className="px-3 py-1.5 rounded-lg bg-muted text-sm font-medium hover:bg-muted/80 transition-all"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
-            </>
-          )}
         </div>
       </div>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Challenge</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this challenge? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <button
+              onClick={() => setShowDeleteConfirm(false)}
+              className="px-4 py-2 rounded-lg bg-muted text-sm font-medium hover:bg-muted/80 transition-all"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deleteChallenge.isPending}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-all disabled:opacity-50"
+            >
+              {deleteChallenge.isPending ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+              Yes, delete
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Submit brew form */}
       {showSubmitForm && (
@@ -366,8 +402,8 @@ export default function ChallengeDetail() {
       {status === "past" && (
         <div className="glass-panel rounded-xl p-5 space-y-4">
           <div className="flex items-center gap-2">
-            <Award size={20} className="text-gold" />
-            <h2 className="font-slab text-xl font-bold">Leaderboard</h2>
+            <Medal size={20} className="text-gold" />
+            <h2 className="font-slab text-xl font-bold">Top brews</h2>
           </div>
 
           {entriesLoading ? (
@@ -380,18 +416,24 @@ export default function ChallengeDetail() {
             <p className="text-muted-foreground text-sm">No rated submissions yet.</p>
           ) : (
             <div className="space-y-3">
-              {topEntries.map((entry: any, index: number) => (
+              {(showAllLeaderboard ? ratedEntries : topEntries).map((entry: any, index: number) => (
                 <div
                   key={entry.id}
                   className="flex items-center gap-4 p-4 rounded-xl bg-gradient-to-br from-muted/30 to-muted/10 border border-border/40"
                 >
-                  <div className="text-2xl w-8 text-center">{MEDALS[index]}</div>
+                  <div className="text-2xl w-8 text-center">{MEDALS[index] ?? "🏅"}</div>
+                  <Avatar className="h-9 w-9 shrink-0">
+                    <AvatarImage src={entry.profiles?.avatar_url} alt={entry.profiles?.username ?? "Anonymous"} />
+                    <AvatarFallback className="text-xs">
+                      {getInitial(entry.profiles?.username ?? "?")}
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="flex-1 min-w-0">
                     <p className="font-slab font-semibold text-sm truncate">
                       {entry.batch?.name ?? "Unnamed brew"}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      by {entry.profiles?.username ?? "Anonymous"}
+                      @{entry.profiles?.username ?? "anonymous"}
                     </p>
                   </div>
                   <div className="flex items-center gap-1">
@@ -403,6 +445,14 @@ export default function ChallengeDetail() {
                   </div>
                 </div>
               ))}
+              {totalSubmissions > 3 && !showAllLeaderboard && (
+                <button
+                  onClick={() => setShowAllLeaderboard(true)}
+                  className="w-full text-center text-sm text-teal hover:underline mt-1"
+                >
+                  View all {totalSubmissions} submissions
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -415,7 +465,7 @@ export default function ChallengeDetail() {
             <BarChart3 size={20} className="text-teal" />
             <h2 className="font-slab text-xl font-bold">Submissions Feed</h2>
           </div>
-          <SubmissionFeed challengeId={challenge.id} />
+          <SubmissionFeed challengeId={challenge.id} participantCount={participantCount} />
         </div>
       )}
 
@@ -431,11 +481,14 @@ export default function ChallengeDetail() {
           <div className="space-y-2">
             {entriesList.slice(0, 10).map((entry: any) => (
               <div key={entry.id} className="flex items-center gap-3 py-2">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-copper/20 to-teal/20 border border-border flex items-center justify-center">
-                  <FlaskConical size={12} className={typeAccent[challenge.type ?? "ferment"] ?? "text-copper"} />
-                </div>
+                <Avatar className="h-8 w-8 shrink-0">
+                  <AvatarImage src={entry.profiles?.avatar_url} alt={entry.profiles?.username ?? "Anonymous"} />
+                  <AvatarFallback className="text-xs">
+                    {getInitial(entry.profiles?.username ?? "?")}
+                  </AvatarFallback>
+                </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{entry.profiles?.username ?? "Anonymous"}</p>
+                  <p className="text-sm font-medium truncate">@{entry.profiles?.username ?? "anonymous"}</p>
                   {entry.submitted_at && (
                     <p className="text-xs text-muted-foreground">Submitted</p>
                   )}
@@ -462,7 +515,8 @@ export default function ChallengeDetail() {
 
 // ─── Submission Feed ─────────────────────────────────────────────────────────
 
-function SubmissionFeed({ challengeId }: { challengeId: string }) {
+function SubmissionFeed({ challengeId, participantCount }: { challengeId: string; participantCount: number }) {
+  const navigate = useNavigate();
   const { data: posts, isLoading } = useQuery({
     queryKey: ['challenge-posts', challengeId],
     queryFn: async () => {
@@ -478,6 +532,8 @@ function SubmissionFeed({ challengeId }: { challengeId: string }) {
     enabled: !!challengeId,
   });
 
+  const submissionsCount = (posts ?? []).length;
+
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -488,31 +544,52 @@ function SubmissionFeed({ challengeId }: { challengeId: string }) {
     );
   }
 
-  if ((posts ?? []).length === 0) {
+  if (submissionsCount === 0) {
     return <p className="text-sm text-muted-foreground">No submissions yet. Be the first!</p>;
   }
 
   return (
-    <div className="space-y-3">
-      {(posts ?? []).map((post: any) => (
-        <div key={post.id} className="p-4 rounded-xl bg-muted/30 border border-border/30">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="w-6 h-6 rounded-full bg-gradient-to-br from-copper/20 to-teal/20 border border-border flex items-center justify-center">
-              <FlaskConical size={10} className="text-copper" />
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
+        {participantCount} {participantCount === 1 ? "person" : "people"} joined · {submissionsCount} {submissionsCount === 1 ? "has" : "have"} submitted so far
+      </p>
+      <div className="space-y-3">
+        {(posts ?? []).map((post: any) => (
+          <button
+            key={post.id}
+            onClick={() => navigate(`/post/${post.id}`)}
+            className="w-full text-left p-4 rounded-xl bg-muted/30 border border-border/30 hover:bg-muted/50 transition-colors"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Avatar className="h-6 w-6 shrink-0">
+                <AvatarImage src={post.profiles?.avatar_url} alt={post.profiles?.username ?? "Anonymous"} />
+                <AvatarFallback className="text-[10px]">
+                  {getInitial(post.profiles?.username ?? "?")}
+                </AvatarFallback>
+              </Avatar>
+              <p className="text-xs font-semibold">@{post.profiles?.username ?? "anonymous"}</p>
+              <span className="text-[10px] text-muted-foreground ml-auto">
+                {formatPostTime(post.created_at)}
+              </span>
             </div>
-            <p className="text-xs font-semibold">{post.profiles?.username ?? "Anonymous"}</p>
-            <span className="text-[10px] text-muted-foreground ml-auto">
-              {new Date(post.created_at).toLocaleDateString()}
-            </span>
-          </div>
-          <p className="text-sm font-medium mb-1">{post.title}</p>
-          <p className="text-xs text-muted-foreground line-clamp-2">{post.content}</p>
-        </div>
-      ))}
+            <p className="text-sm font-medium mb-1">{post.title}</p>
+            {post.photos && post.photos.length > 0 && (
+              <div className="mb-2">
+                <img
+                  src={post.photos[0]}
+                  alt={post.title}
+                  className="w-full h-40 object-cover rounded-lg"
+                  loading="lazy"
+                />
+              </div>
+            )}
+            <div className="flex items-center gap-1 text-xs text-muted-foreground">
+              <Heart size={12} className={post.likes_count > 0 ? "fill-red-400 text-red-400" : ""} />
+              <span>{post.likes_count ?? 0}</span>
+            </div>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
-
-// Need to import useQuery and supabase
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";

@@ -1,9 +1,14 @@
+import { useState, useEffect, useMemo } from 'react'
 import { useAdminChallenges, useModerateChallenge } from '@/hooks/useAdmin'
-import { Trophy, Check, X, Plus, Users } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+import { Trophy, Check, X, Plus, Users, Pencil } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 import {
   Table,
   TableBody,
@@ -12,8 +17,18 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import { toast } from 'sonner'
+import { useQueryClient } from '@tanstack/react-query'
 import type { Database } from '@/types/database'
+import type { Challenge } from '@/hooks/useAdmin'
 
 type ModerationStatus = Database['public']['Enums']['moderation_status']
 
@@ -32,21 +47,120 @@ const typeLabels: Record<string, string> = {
 export default function Challenges() {
   const { data: challenges, isLoading } = useAdminChallenges()
   const moderateMutation = useModerateChallenge()
+  const qc = useQueryClient()
+
+  const [participantCounts, setParticipantCounts] = useState<Record<string, number>>({})
+  const [rejectDialog, setRejectDialog] = useState<{ open: boolean; challengeId: string; title: string }>({
+    open: false,
+    challengeId: '',
+    title: '',
+  })
+  const [rejectionReason, setRejectionReason] = useState('')
+  const [editDialog, setEditDialog] = useState<{ open: boolean; challenge: Challenge | null }>({
+    open: false,
+    challenge: null,
+  })
+  const [editForm, setEditForm] = useState({ title: '', description: '', end_date: '' })
+  const [isUpdating, setIsUpdating] = useState(false)
+
+  const pendingChallenges = useMemo(
+    () => (challenges ?? []).filter((c) => c.moderation_status === 'pending'),
+    [challenges]
+  )
+  const activeChallenges = useMemo(
+    () => (challenges ?? []).filter((c) => c.is_active && c.moderation_status === 'approved'),
+    [challenges]
+  )
+
+  useEffect(() => {
+    if (activeChallenges.length === 0) return
+    const ids = activeChallenges.map((c) => c.id)
+    let cancelled = false
+    supabase
+      .from('challenge_submissions')
+      .select('challenge_id, user_id')
+      .in('challenge_id', ids)
+      .then(({ data, error }) => {
+        if (cancelled || error || !data) return
+        const counts: Record<string, Set<string>> = {}
+        data.forEach((row) => {
+          if (!counts[row.challenge_id]) counts[row.challenge_id] = new Set()
+          counts[row.challenge_id].add(row.user_id)
+        })
+        const result: Record<string, number> = {}
+        Object.entries(counts).forEach(([cid, set]) => {
+          result[cid] = set.size
+        })
+        setParticipantCounts(result)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [activeChallenges.map((c) => c.id).join(',')])
 
   const handleApprove = async (challengeId: string) => {
     await moderateMutation.mutateAsync({ challengeId, action: 'approve' })
   }
 
-  const handleReject = async (challengeId: string) => {
-    await moderateMutation.mutateAsync({ challengeId, action: 'reject' })
+  const openRejectDialog = (challengeId: string, title: string) => {
+    setRejectDialog({ open: true, challengeId, title })
+    setRejectionReason('')
   }
 
-  const pendingChallenges = (challenges ?? []).filter(
-    (c) => c.moderation_status === 'pending'
-  )
-  const activeChallenges = (challenges ?? []).filter(
-    (c) => c.is_active && c.moderation_status === 'approved'
-  )
+  const handleConfirmReject = async () => {
+    if (!rejectDialog.challengeId || !rejectionReason.trim()) return
+    await moderateMutation.mutateAsync({
+      challengeId: rejectDialog.challengeId,
+      action: 'reject',
+      reason: rejectionReason.trim(),
+    })
+    setRejectDialog({ open: false, challengeId: '', title: '' })
+    setRejectionReason('')
+  }
+
+  const openEditDialog = (challenge: Challenge) => {
+    setEditDialog({ open: true, challenge })
+    setEditForm({
+      title: challenge.title ?? '',
+      description: challenge.description ?? '',
+      end_date: challenge.end_date ? challenge.end_date.slice(0, 10) : '',
+    })
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editDialog.challenge) return
+    setIsUpdating(true)
+    const { error } = await supabase
+      .from('challenges')
+      .update({
+        title: editForm.title,
+        description: editForm.description,
+        end_date: editForm.end_date || null,
+      })
+      .eq('id', editDialog.challenge.id)
+    setIsUpdating(false)
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    toast.success('Challenge updated')
+    qc.invalidateQueries({ queryKey: ['admin', 'challenges'] })
+    setEditDialog({ open: false, challenge: null })
+  }
+
+  const handleEndEarly = async (challengeId: string) => {
+    const today = new Date().toISOString().split('T')[0]
+    const { error } = await supabase
+      .from('challenges')
+      .update({ is_active: false, end_date: today })
+      .eq('id', challengeId)
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    toast.success('Challenge ended early')
+    qc.invalidateQueries({ queryKey: ['admin', 'challenges'] })
+  }
 
   if (isLoading) {
     return (
@@ -125,7 +239,7 @@ export default function Challenges() {
                             variant="outline"
                             size="sm"
                             className="text-destructive hover:text-destructive border-destructive/30"
-                            onClick={() => handleReject(challenge.id)}
+                            onClick={() => openRejectDialog(challenge.id, challenge.title ?? '')}
                             disabled={moderateMutation.isPending}
                           >
                             <X size={14} /> Reject
@@ -159,7 +273,9 @@ export default function Challenges() {
                     <TableHead>Type</TableHead>
                     <TableHead>Start</TableHead>
                     <TableHead>End</TableHead>
+                    <TableHead>Participants</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -182,6 +298,12 @@ export default function Challenges() {
                           : '-'}
                       </TableCell>
                       <TableCell>
+                        <Badge variant="secondary" className="text-xs">
+                          <Users size={12} className="mr-1" />
+                          {participantCounts[challenge.id] ?? 0}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
                         <Badge
                           variant="outline"
                           className={
@@ -192,6 +314,26 @@ export default function Challenges() {
                         >
                           {challenge.is_active ? 'Active' : 'Inactive'}
                         </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-copper border-copper/30"
+                            onClick={() => openEditDialog(challenge)}
+                          >
+                            <Pencil size={14} /> Edit
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-destructive border-destructive/30"
+                            onClick={() => handleEndEarly(challenge.id)}
+                          >
+                            End early
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -205,6 +347,101 @@ export default function Challenges() {
           </CardContent>
         </Card>
       </section>
+
+      {/* Reject Dialog */}
+      <Dialog
+        open={rejectDialog.open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRejectDialog({ open: false, challengeId: '', title: '' })
+            setRejectionReason('')
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Challenge</DialogTitle>
+            <DialogDescription>
+              Rejecting "{rejectDialog.title}". Provide a reason for the author.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            placeholder="Reason for rejection..."
+            value={rejectionReason}
+            onChange={(e) => setRejectionReason(e.target.value)}
+            rows={4}
+          />
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setRejectDialog({ open: false, challengeId: '', title: '' })}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmReject}
+              disabled={!rejectionReason.trim() || moderateMutation.isPending}
+            >
+              Reject Challenge
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog
+        open={editDialog.open}
+        onOpenChange={(open) => {
+          if (!open) setEditDialog({ open: false, challenge: null })
+        }}
+      >
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Edit Challenge</DialogTitle>
+            <DialogDescription>Update title, description, and end date.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-title">Title</Label>
+              <Input
+                id="edit-title"
+                value={editForm.title}
+                onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-desc">Description</Label>
+              <Textarea
+                id="edit-desc"
+                value={editForm.description}
+                onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+                rows={3}
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-end">End Date</Label>
+              <Input
+                id="edit-end"
+                type="date"
+                value={editForm.end_date}
+                onChange={(e) => setEditForm((f) => ({ ...f, end_date: e.target.value }))}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setEditDialog({ open: false, challenge: null })}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={isUpdating}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

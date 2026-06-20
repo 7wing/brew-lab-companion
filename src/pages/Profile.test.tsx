@@ -33,10 +33,18 @@ vi.mock("@/hooks/useProfile", () => ({
 
 vi.mock("@/hooks/useBatches", () => ({
   useBatches: vi.fn(),
+  useUpdateBatch: vi.fn(() => ({
+    mutate: vi.fn(),
+    isPending: false,
+  })),
 }));
 
 vi.mock("@/hooks/useRecipes", () => ({
   useRecipes: vi.fn(),
+  useDeleteRecipe: vi.fn(() => ({
+    mutate: vi.fn(),
+    isPending: false,
+  })),
 }));
 
 vi.mock("@/hooks/useYeastBank", () => ({

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { MessageSquare, Heart, Share2, ChevronLeft, ChevronRight, FlaskConical, Send, Loader2, Search, MoreHorizontal, Clock, Image } from "lucide-react";
-import { usePosts, useToggleLike, useComments, useAddComment } from "@/hooks/usePosts";
+import { MessageSquare, Heart, Share2, ChevronLeft, ChevronRight, FlaskConical, Search, MoreHorizontal, Clock, Edit, Trash2, Flag } from "lucide-react";
+import { usePosts, useToggleLike } from "@/hooks/usePosts";
 import { useFollowedPosts } from "@/hooks/useFollowedPosts";
 import { useAuth } from "@/contexts/AuthContext";
 import ChallengesPanel from "@/components/ChallengesPanel";
@@ -22,6 +22,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 
@@ -43,6 +44,19 @@ const typeAccent: Record<string, string> = {
   sourdough: "text-gold",
   ferment: "text-teal",
 };
+
+const avatarBg: Record<string, string> = {
+  beer: "bg-copper/20",
+  kombucha: "bg-teal/20",
+  mead: "bg-gold/20",
+  cider: "bg-copper/20",
+  sourdough: "bg-gold/20",
+  ferment: "bg-teal/20",
+};
+
+function getInitial(name: string): string {
+  return (name?.[0] ?? "?").toUpperCase();
+}
 
 const Community = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -85,8 +99,6 @@ const Community = () => {
   const isLoading = showFollowing ? followedPostsLoading : postsLoading;
   const totalPages = showFollowing ? followedTotalPages : Math.ceil((postsRes?.total ?? 0) / PAGE_SIZE);
   const hasNextPage = page < totalPages;
-
-  const addComment = useAddComment();
 
   async function handleShare(post: any) {
     const url = `${window.location.origin}/community`;
@@ -276,98 +288,64 @@ function PostCard({
   const { user } = useAuth();
   const isOwner = user?.id === post.user_id;
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const username = post.profiles?.username ?? "anonymous";
+  const avatarUrl = post.profiles?.avatar_url;
+  const fallbackBg = avatarBg[post.type] || "bg-copper/20";
 
   return (
-    <article className="glass-panel rounded-xl p-4 sm:p-5 hover:shadow-lg transition-all duration-300 cursor-pointer"
-      onClick={onClick}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-copper/20 to-teal/20 border border-border flex items-center justify-center">
-            <FlaskConical size={14} className={typeAccent[post.type] || "text-copper"} />
-          </div>
-          <div>
-            <p className="text-sm font-semibold">@{post.profiles?.username ?? "anonymous"}</p>
-            <div className="flex items-center gap-1.5">
-              <p className={`text-[10px] uppercase tracking-widest ${typeAccent[post.type] ?? "text-muted-foreground"}`}>
-                {post.type}
-              </p>
-              <span className="text-[10px] text-muted-foreground">·</span>
-              <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                <Clock size={8} />
-                {formatPostTime(post.created_at)}
+    <article className="glass-panel rounded-xl p-4 sm:p-5 hover:shadow-lg transition-all duration-300">
+      <div className="cursor-pointer" onClick={onClick}>
+        {/* Author line */}
+        <div className="flex items-center gap-2 mb-3">
+          {avatarUrl ? (
+            <img
+              src={avatarUrl}
+              alt={username}
+              className="w-8 h-8 rounded-full object-cover border border-border"
+            />
+          ) : (
+            <div className={`w-8 h-8 rounded-full ${fallbackBg} border border-border flex items-center justify-center`}>
+              <span className="text-xs font-semibold text-foreground">
+                {getInitial(username)}
               </span>
             </div>
-          </div>
+          )}
+          <p className="text-sm font-semibold">@{username}</p>
+          <span className="text-[10px] text-muted-foreground">·</span>
+          <p className={`text-[10px] uppercase tracking-widest ${typeAccent[post.type] ?? "text-muted-foreground"}`}>
+            {post.type}
+          </p>
+          <span className="text-[10px] text-muted-foreground">·</span>
+          <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+            <Clock size={8} />
+            {formatPostTime(post.created_at)}
+          </span>
         </div>
 
-        {/* Options menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              onClick={(e) => e.stopPropagation()}
-              className="p-1 rounded-md hover:bg-muted transition-colors text-muted-foreground"
-              aria-label="Options"
-            >
-              <MoreHorizontal size={16} />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-40">
-            {isOwner ? (
-              <>
-                <DropdownMenuItem onClick={() => toast.info("Edit post — coming soon")} className="cursor-pointer gap-2">
-                  <Edit2 size={14} /> Edit post
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-                  <DialogTrigger asChild>
-                    <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer gap-2 text-destructive focus:text-destructive">
-                      <Trash2 size={14} /> Delete post
-                    </DropdownMenuItem>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-md max-w-full">
-                    <DialogHeader>
-                      <DialogTitle className="font-slab">Delete post?</DialogTitle>
-                      <DialogDescription>This action cannot be undone.</DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                      <Button variant="ghost" onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>
-                      <Button variant="destructive" onClick={() => { setShowDeleteConfirm(false); toast.info("Delete post — coming soon"); }}>Delete</Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </>
-            ) : (
-              <DropdownMenuItem onClick={() => toast.info("Report post — coming soon")} className="cursor-pointer gap-2">
-                <Flag size={14} /> Report post
-              </DropdownMenuItem>
-            )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <h3 className="font-slab font-semibold text-base mb-2">{post.title}</h3>
+        <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">{post.content}</p>
+
+        {/* Photo thumbnail */}
+        {post.photos && Array.isArray(post.photos) && post.photos.length > 0 && (
+          <div className="mt-3 flex gap-2 overflow-x-auto">
+            {(post.photos as string[]).slice(0, 3).map((url: string, idx: number) => (
+              <div key={idx} className="w-20 h-20 rounded-lg border border-border/40 bg-muted/30 flex items-center justify-center shrink-0 overflow-hidden">
+                <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Recipe tag */}
+        {post.recipe_id && (
+          <div className="mt-2 inline-flex items-center gap-1 text-xs text-copper bg-copper/10 px-2 py-1 rounded-md">
+            <FlaskConical size={10} />
+            Tagged recipe
+          </div>
+        )}
       </div>
 
-      <h3 className="font-slab font-semibold text-base mb-2">{post.title}</h3>
-      <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">{post.content}</p>
-
-      {/* Photo thumbnail */}
-      {post.photos && Array.isArray(post.photos) && post.photos.length > 0 && (
-        <div className="mt-3 flex gap-2 overflow-x-auto">
-          {(post.photos as string[]).slice(0, 3).map((url: string, idx: number) => (
-            <div key={idx} className="w-20 h-20 rounded-lg border border-border/40 bg-muted/30 flex items-center justify-center shrink-0 overflow-hidden">
-              <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Recipe tag */}
-      {post.recipe_id && (
-        <div className="mt-2 inline-flex items-center gap-1 text-xs text-copper bg-copper/10 px-2 py-1 rounded-md">
-          <FlaskConical size={10} />
-          Tagged recipe
-        </div>
-      )}
-
+      {/* Action bar */}
       <div className="flex items-center gap-4 mt-4 pt-3 border-t border-border/30" onClick={(e) => e.stopPropagation()}>
         <button
           onClick={() => toggleLike.mutate()}
@@ -384,109 +362,60 @@ function PostCard({
           <MessageSquare size={14} />
           Comments
         </button>
-        <button
-          onClick={onShare}
-          className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-gold transition-colors ml-auto"
-        >
-          <Share2 size={14} /> {copy.common.share}
-        </button>
+        <div className="flex items-center gap-4 ml-auto">
+          <button
+            onClick={onShare}
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-gold transition-colors"
+          >
+            <Share2 size={14} /> {copy.common.share}
+          </button>
+
+          {/* Options menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className="p-1 rounded-md hover:bg-muted transition-colors text-muted-foreground"
+                aria-label="Options"
+              >
+                <MoreHorizontal size={16} />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-40">
+              {isOwner ? (
+                <>
+                  <DropdownMenuItem onClick={() => toast.info("Edit post — coming soon")} className="cursor-pointer gap-2">
+                    <Edit size={14} /> Edit post
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+                    <DialogTrigger asChild>
+                      <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer gap-2 text-destructive focus:text-destructive">
+                        <Trash2 size={14} /> Delete post
+                      </DropdownMenuItem>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md max-w-full">
+                      <DialogHeader>
+                        <DialogTitle className="font-slab">Delete post?</DialogTitle>
+                        <DialogDescription>This action cannot be undone.</DialogDescription>
+                      </DialogHeader>
+                      <DialogFooter>
+                        <Button variant="ghost" onClick={() => setShowDeleteConfirm(false)}>Cancel</Button>
+                        <Button variant="destructive" onClick={() => { setShowDeleteConfirm(false); toast.info("Delete post — coming soon"); }}>Delete</Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                </>
+              ) : (
+                <DropdownMenuItem onClick={() => toast.info("Report post — coming soon")} className="cursor-pointer gap-2">
+                  <Flag size={14} /> Report post
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </article>
-  );
-}
-
-function CommentSection({
-  postId,
-  commentText,
-  setCommentText,
-  onClose,
-}: {
-  postId: string;
-  commentText: string;
-  setCommentText: (s: string) => void;
-  onClose: () => void;
-}) {
-  const { data: comments, isLoading } = useComments(postId);
-  const addComment = useAddComment();
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!commentText.trim()) return;
-    addComment.mutate(
-      { post_id: postId, content: commentText.trim() },
-      {
-        onSuccess: () => setCommentText(""),
-      }
-    );
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-background/60 backdrop-blur-sm" />
-      <div
-        className="relative w-full sm:max-w-lg bg-background border border-border rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[70vh] flex flex-col"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-border/50">
-          <h3 className="font-slab font-semibold text-sm">{copy.common.view} Comments</h3>
-          <button onClick={onClose} className="p-1 rounded-md hover:bg-muted transition-colors">
-            <span className="sr-only">Close</span>
-            ✕
-          </button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-5 space-y-4">
-          {isLoading ? (
-            <div className="space-y-3">
-              {[1, 2].map((i) => (
-                <div key={i} className="h-12 bg-muted/50 rounded-lg animate-pulse" />
-              ))}
-            </div>
-          ) : (comments ?? []).length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center">No comments yet. Be the first!</p>
-          ) : (
-            (comments ?? []).map((c: any) => (
-              <div key={c.id} className="flex gap-3">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-copper/20 to-teal/20 border border-border flex items-center justify-center shrink-0">
-                  <FlaskConical size={10} className="text-copper" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold">
-                    {c.profiles?.username ?? "Anonymous"}
-                  </p>
-                  <p className="text-sm text-muted-foreground">{c.content}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
-                    {new Date(c.created_at).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-        <form
-          onSubmit={handleSubmit}
-          className="px-5 py-4 border-t border-border/50 flex items-center gap-3"
-        >
-          <input
-            type="text"
-            placeholder="Write a comment..."
-            value={commentText}
-            onChange={(e) => setCommentText(e.target.value)}
-            className="flex-1 h-10 px-3 rounded-lg bg-muted/50 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30"
-          />
-          <button
-            type="submit"
-            disabled={addComment.isPending || !commentText.trim()}
-            className="h-10 w-10 rounded-lg bg-teal text-teal-foreground flex items-center justify-center disabled:opacity-50 transition-colors"
-          >
-            {addComment.isPending ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <Send size={16} />
-            )}
-          </button>
-        </form>
-      </div>
-    </div>
   );
 }
 

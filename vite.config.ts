@@ -7,7 +7,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
-    allowedHosts: ["52qt97-8080.csb.app"],
+    allowedHosts: ["zsclq8-8080.csb.app"],
     hmr: {
       overlay: false,
     },

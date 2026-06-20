@@ -1,11 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   ArrowLeft,
-  Camera,
-  Share2,
-  MessageSquare,
   Plus,
   Droplets,
   Thermometer,
@@ -46,13 +43,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import GravityCurve from "@/components/GravityCurve";
 import ReadingsTable from "@/components/ReadingsTable";
-import { useBatch } from "@/hooks/useBatches";
+import { useBatch, useUpdateBatch } from "@/hooks/useBatches";
 import { useReadings, useCreateReading } from "@/hooks/useReadings";
-import { useUpload } from "@/hooks/useUpload";
-import { useCreatePost } from "@/hooks/usePosts";
-import { useCreateTastingNote, useTastingSessions } from "@/hooks/useTastingNotes";
 import { useDeleteBatch } from "@/hooks/useDeleteBatch";
 import { useUpdateBatchStage } from "@/hooks/useUpdateBatchStage";
 import { LIFECYCLE_ORDER, LIFECYCLE_LABELS, type LifecycleStatus } from "@/lib/lifecycle";
@@ -64,37 +65,50 @@ const BatchDetail = () => {
   const { data: batch, isLoading: batchLoading } = useBatch(id);
   const { data: readings, isLoading: readingsLoading } = useReadings(id);
   const createReading = useCreateReading();
-  const { upload: uploadPhoto, uploading: photoUploading } = useUpload("batch-photos");
-  const createPost = useCreatePost();
-  const createTastingNote = useCreateTastingNote();
-  const tastingSession = useTastingSessions(id);
+  const updateBatch = useUpdateBatch();
   const updateBatchStage = useUpdateBatchStage();
   const deleteBatch = useDeleteBatch();
 
   const [logOpen, setLogOpen] = useState(false);
-  const [tastingOpen, setTastingOpen] = useState(false);
-  const [shareOpen, setShareOpen] = useState(false);
   const [stageConfirmOpen, setStageConfirmOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const [logGravity, setLogGravity] = useState("");
   const [logTemp, setLogTemp] = useState("");
   const [logPh, setLogPh] = useState("");
   const [logNotes, setLogNotes] = useState("");
 
-  const [tastingAroma, setTastingAroma] = useState("");
-  const [tastingFlavor, setTastingFlavor] = useState("");
-  const [tastingMouthfeel, setTastingMouthfeel] = useState("");
-  const [tastingOverall, setTastingOverall] = useState("");
-
-  const [shareTitle, setShareTitle] = useState("");
-  const [shareContent, setShareContent] = useState("");
+  // Edit batch form state
+  const [editName, setEditName] = useState("");
+  const [editType, setEditType] = useState("");
+  const [editOg, setEditOg] = useState("");
+  const [editTargetFg, setEditTargetFg] = useState("");
+  const [editTargetDays, setEditTargetDays] = useState("");
+  const [editTargetTemp, setEditTargetTemp] = useState("");
+  const [editBatchSize, setEditBatchSize] = useState("");
+  const [editYeastStrain, setEditYeastStrain] = useState("");
+  const [editNotes, setEditNotes] = useState("");
 
   // Stage-specific edit state
   const [clarityNotes, setClarityNotes] = useState(batch?.notes ?? "");
   const [packageVolume, setPackageVolume] = useState(batch?.volume ? String(batch.volume) : "");
   const [tastingNotesText, setTastingNotesText] = useState("");
   const [starRating, setStarRating] = useState(batch?.star_rating ?? 0);
+
+  useEffect(() => {
+    if (editOpen && batch) {
+      setEditName(batch.name ?? "");
+      setEditType(batch.type ?? "");
+      setEditOg(batch.og != null ? String(batch.og) : "");
+      setEditTargetFg(batch.target_fg != null ? String(batch.target_fg) : "");
+      setEditTargetDays(batch.target_days != null ? String(batch.target_days) : "");
+      setEditTargetTemp(batch.target_temp_f != null ? String(batch.target_temp_f) : "");
+      setEditBatchSize(batch.batch_size != null ? String(batch.batch_size) : "");
+      setEditYeastStrain(batch.yeast_strain ?? "");
+      setEditNotes(batch.notes ?? "");
+    }
+  }, [editOpen, batch]);
 
   if (batchLoading) {
     return (
@@ -164,43 +178,25 @@ const BatchDetail = () => {
     }
   }
 
-  async function handleTastingNote() {
+  async function handleSaveBatch() {
     if (!id) return;
     try {
-      const session = await tastingSession.createSession(`${batch.name} Tasting`);
-      await createTastingNote.mutateAsync({
-        sessionId: session.id,
-        aroma: tastingAroma,
-        flavor: tastingFlavor,
-        mouthfeel: tastingMouthfeel,
-        overall: tastingOverall,
+      await updateBatch.mutateAsync({
+        id,
+        name: editName,
+        type: editType as any,
+        og: editOg ? parseFloat(editOg) : null,
+        target_fg: editTargetFg ? parseFloat(editTargetFg) : null,
+        target_days: editTargetDays ? parseInt(editTargetDays, 10) : 0,
+        target_temp_f: editTargetTemp ? parseFloat(editTargetTemp) : null,
+        batch_size: editBatchSize ? parseFloat(editBatchSize) : null,
+        yeast_strain: editYeastStrain || null,
+        notes: editNotes || null,
       });
-      setTastingOpen(false);
-      setTastingAroma("");
-      setTastingFlavor("");
-      setTastingMouthfeel("");
-      setTastingOverall("");
+      setEditOpen(false);
+      toast.success("Batch updated");
     } catch (err: any) {
-      toast.error(err?.message || "Failed to save tasting note");
-    }
-  }
-
-  async function handleShare() {
-    if (!id) return;
-    try {
-      await createPost.mutateAsync({
-        category: "tasting",
-        title: shareTitle || `${batch.name} — Tasting Notes`,
-        content:
-          shareContent ||
-          `Sharing my progress on ${batch.name}. Day ${daysElapsed} of ${batch.target_days}.`,
-        type: batch.type,
-      });
-      setShareOpen(false);
-      setShareTitle("");
-      setShareContent("");
-    } catch (err: any) {
-      toast.error(err?.message || "Failed to share post");
+      toast.error(err?.message || "Failed to update batch");
     }
   }
 
@@ -225,6 +221,19 @@ const BatchDetail = () => {
       toast.error(err?.message || "Failed to delete batch");
     }
   }
+
+  // Next pending stage for upcoming actions
+  const nextPendingStage = (() => {
+    const stages = (batch.batch_stages ?? []) as Array<{
+      name: string;
+      scheduled: string | null;
+      completed: boolean;
+    }>;
+    const pending = stages
+      .filter((s) => !s.completed)
+      .sort((a, b) => (a.scheduled ?? "").localeCompare(b.scheduled ?? ""));
+    return pending[0];
+  })();
 
   // Stage badge colour helper
   const stageBadgeVariant = (stage: LifecycleStatus) => {
@@ -288,13 +297,133 @@ const BatchDetail = () => {
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem
-                onSelect={() => toast.info("Edit batch — coming soon")}
-                className="cursor-pointer"
-              >
-                <Edit2 size={14} className="mr-2" />
-                Edit batch
-              </DropdownMenuItem>
+              <Dialog open={editOpen} onOpenChange={setEditOpen}>
+                <DialogTrigger asChild>
+                  <DropdownMenuItem
+                    onSelect={(e) => e.preventDefault()}
+                    className="cursor-pointer"
+                  >
+                    <Edit2 size={14} className="mr-2" />
+                    Edit batch
+                  </DropdownMenuItem>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-lg max-w-full">
+                  <DialogHeader>
+                    <DialogTitle className="font-slab">Edit {batch.name}</DialogTitle>
+                    <DialogDescription>
+                      Update batch details and target parameters.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Name</Label>
+                      <Input
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        placeholder="Batch name"
+                      />
+                    </div>
+                    <div>
+                      <Label>Type</Label>
+                      <Select value={editType} onValueChange={setEditType}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {["beer", "kombucha", "mead", "cider", "sourdough", "ferment"].map(
+                            (t) => (
+                              <SelectItem key={t} value={t}>
+                                {t.charAt(0).toUpperCase() + t.slice(1)}
+                              </SelectItem>
+                            )
+                          )}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>OG</Label>
+                        <Input
+                          type="number"
+                          step="0.001"
+                          value={editOg}
+                          onChange={(e) => setEditOg(e.target.value)}
+                          placeholder="1.050"
+                        />
+                      </div>
+                      <div>
+                        <Label>Target FG</Label>
+                        <Input
+                          type="number"
+                          step="0.001"
+                          value={editTargetFg}
+                          onChange={(e) => setEditTargetFg(e.target.value)}
+                          placeholder="1.010"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Target days</Label>
+                        <Input
+                          type="number"
+                          value={editTargetDays}
+                          onChange={(e) => setEditTargetDays(e.target.value)}
+                          placeholder="14"
+                        />
+                      </div>
+                      <div>
+                        <Label>Target temp °F</Label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={editTargetTemp}
+                          onChange={(e) => setEditTargetTemp(e.target.value)}
+                          placeholder="68"
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Batch size (gal)</Label>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          value={editBatchSize}
+                          onChange={(e) => setEditBatchSize(e.target.value)}
+                          placeholder="5.0"
+                        />
+                      </div>
+                      <div>
+                        <Label>Yeast strain</Label>
+                        <Input
+                          value={editYeastStrain}
+                          onChange={(e) => setEditYeastStrain(e.target.value)}
+                          placeholder="e.g. US-05"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label>Notes</Label>
+                      <Textarea
+                        value={editNotes}
+                        onChange={(e) => setEditNotes(e.target.value)}
+                        placeholder="Optional notes..."
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="ghost" onClick={() => setEditOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button onClick={handleSaveBatch} disabled={updateBatch.isPending}>
+                      {updateBatch.isPending && <Loader2 size={16} className="animate-spin mr-2" />}
+                      Save Changes
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
               <DropdownMenuSeparator />
               <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
                 <DialogTrigger asChild>
@@ -594,6 +723,51 @@ const BatchDetail = () => {
                 </div>
               </div>
             </div>
+
+            {/* Upcoming Actions */}
+            {nextPendingStage && (
+              <div className="glass-panel rounded-xl p-5">
+                <h3 className="font-slab font-semibold text-sm mb-2">Upcoming Action</h3>
+                {(() => {
+                  const scheduledDate = nextPendingStage.scheduled
+                    ? new Date(nextPendingStage.scheduled)
+                    : null;
+                  const startDate = new Date(batch.start_date);
+                  const dayNumber = scheduledDate
+                    ? Math.max(
+                        0,
+                        Math.floor(
+                          (scheduledDate.getTime() - startDate.getTime()) /
+                            (1000 * 60 * 60 * 24)
+                        )
+                      )
+                    : null;
+                  const daysUntil = scheduledDate
+                    ? Math.ceil(
+                        (scheduledDate.getTime() - Date.now()) /
+                          (1000 * 60 * 60 * 24)
+                      )
+                    : null;
+                  const timeText =
+                    daysUntil == null
+                      ? ""
+                      : daysUntil < 0
+                        ? `overdue by ${Math.abs(daysUntil)} days`
+                        : daysUntil === 0
+                          ? "today"
+                          : `in ${daysUntil} days`;
+                  return (
+                    <p className="text-sm text-muted-foreground">
+                      <span className="font-medium text-foreground">
+                        {nextPendingStage.name}
+                      </span>
+                      {dayNumber != null && ` — Day ${dayNumber}`}
+                      {timeText && ` (${timeText})`}
+                    </p>
+                  );
+                })()}
+              </div>
+            )}
           </>
         )}
 
@@ -783,7 +957,7 @@ const BatchDetail = () => {
             </div>
 
             {/* Mark as finished */}
-            {batch.status !== "finished" && (
+            {batch.status !== "finished" && batch.volume != null && batch.volume <= 0.1 && (
               <div className="glass-panel rounded-xl p-5 border border-green-500/20 bg-green-500/5">
                 <div className="flex items-center justify-between flex-wrap gap-3">
                   <div className="flex items-center gap-2">
@@ -828,154 +1002,6 @@ const BatchDetail = () => {
                 </div>
               </div>
             )}
-          </div>
-        )}
-
-        {/* ── Generic sidebar (shown for most stages except batch_shelf) ── */}
-        {currentStatus !== "batch_shelf" && (
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
-            <div />
-            <div className="space-y-4">
-              {/* Tasting note + Share + Upload Photo */}
-              <div className="glass-panel rounded-xl p-4">
-                <h3 className="font-slab font-semibold text-sm mb-3">Quick Actions</h3>
-                <div className="space-y-2">
-                  {/* Upload Photo */}
-                  <label className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-border/40 hover:bg-muted text-sm transition-colors cursor-pointer">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      className="hidden"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file || !id) return;
-                        try {
-                          const url = await uploadPhoto(
-                            file,
-                            `${id}/${Date.now()}.jpg`
-                          );
-                          if (url) {
-                            await createReading.mutateAsync({
-                              batch_id: id,
-                              gravity: currentGravity,
-                              photo_url: url,
-                            });
-                          }
-                        } catch (err: any) {
-                          toast.error(err?.message || "Failed to upload photo");
-                        }
-                        e.target.value = "";
-                      }}
-                    />
-                    {photoUploading ? (
-                      <Loader2 size={14} className="animate-spin text-copper" />
-                    ) : (
-                      <Camera size={14} className="text-copper" />
-                    )}
-                    {photoUploading ? "Uploading…" : "Upload Photo"}
-                  </label>
-
-                  {/* Tasting Note */}
-                  <Dialog open={tastingOpen} onOpenChange={setTastingOpen}>
-                    <DialogTrigger asChild>
-                      <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-border/40 hover:bg-muted text-sm transition-colors">
-                        <MessageSquare size={14} className="text-copper" />
-                        Tasting Note
-                      </button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-md max-w-full">
-                      <DialogHeader>
-                        <DialogTitle className="font-slab">Tasting Note</DialogTitle>
-                        <DialogDescription>Log your sensory impressions.</DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-3">
-                        {[
-                          { label: "Aroma", value: tastingAroma, set: setTastingAroma, placeholder: "What do you smell?" },
-                          { label: "Flavor", value: tastingFlavor, set: setTastingFlavor, placeholder: "What do you taste?" },
-                          { label: "Mouthfeel", value: tastingMouthfeel, set: setTastingMouthfeel, placeholder: "Body, carbonation, finish..." },
-                          { label: "Overall", value: tastingOverall, set: setTastingOverall, placeholder: "Overall impression..." },
-                        ].map(({ label, value, set, placeholder }) => (
-                          <div key={label}>
-                            <Label>{label}</Label>
-                            <Textarea
-                              placeholder={placeholder}
-                              value={value}
-                              onChange={(e) => set(e.target.value)}
-                            />
-                          </div>
-                        ))}
-                      </div>
-                      <DialogFooter>
-                        <Button onClick={handleTastingNote} disabled={createTastingNote.isPending}>
-                          {createTastingNote.isPending && (
-                            <Loader2 size={16} className="animate-spin mr-2" />
-                          )}
-                          Save Tasting Note
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-
-                  {/* Share to Community */}
-                  <Dialog open={shareOpen} onOpenChange={setShareOpen}>
-                    <DialogTrigger asChild>
-                      <button className="w-full flex items-center gap-2 px-3 py-2 rounded-lg border border-border/40 hover:bg-muted text-sm transition-colors">
-                        <Share2 size={14} className="text-copper" />
-                        Share to Community
-                      </button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-md max-w-full">
-                      <DialogHeader>
-                        <DialogTitle className="font-slab">Share to Community</DialogTitle>
-                        <DialogDescription>
-                          Post your batch progress to the community feed.
-                        </DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-3">
-                        <div>
-                          <Label>Title</Label>
-                          <Input
-                            placeholder="Post title"
-                            value={shareTitle}
-                            onChange={(e) => setShareTitle(e.target.value)}
-                          />
-                        </div>
-                        <div>
-                          <Label>Content</Label>
-                          <Textarea
-                            placeholder="What's happening with this batch?"
-                            value={shareContent}
-                            onChange={(e) => setShareContent(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button onClick={handleShare} disabled={createPost.isPending}>
-                          {createPost.isPending && (
-                            <Loader2 size={16} className="animate-spin mr-2" />
-                          )}
-                          Share
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </div>
-
-              {/* Recipe info sidebar */}
-              <div className="glass-panel rounded-xl p-4">
-                <h3 className="font-slab font-semibold text-sm mb-2">Recipe</h3>
-                <div className="space-y-1.5 text-sm text-muted-foreground">
-                  <p>Style: {batch.recipe?.title ?? batch.name}</p>
-                  <p>
-                    OG: {batch.og ?? "?"} → FG: {batch.target_fg ?? "?"}
-                  </p>
-                  <p>Fermenter: {batch.fermenter ?? "—"}</p>
-                  <p>Target Temp: {batch.target_temp_f ?? "—"}°F</p>
-                </div>
-              </div>
-            </div>
           </div>
         )}
       </div>

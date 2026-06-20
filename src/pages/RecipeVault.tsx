@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Search,
@@ -125,11 +125,7 @@ function RecipeCard({ recipe, onToggleStar }: { recipe: any; onToggleStar: () =>
               {recipe.style}
             </span>
           )}
-          {recipe.featured && (
-            <span className="text-[10px] px-1.5 py-0.5 rounded bg-gold/20 text-gold font-semibold">
-              Featured
-            </span>
-          )}
+
         </div>
         <button
           onClick={(e) => { e.stopPropagation(); onToggleStar(); }}
@@ -152,13 +148,15 @@ function RecipeCard({ recipe, onToggleStar }: { recipe: any; onToggleStar: () =>
           </span>
         )}
         {recipe.ibu != null && recipe.ibu > 0 && (
-          <span className="flex items-center gap-1">
+          <span className="hidden md:inline-flex items-center gap-1">
             {recipe.ibu} IBU
           </span>
         )}
         <SrmSwatch srm={recipe.srm} />
-        <DifficultyDots value={recipe.difficulty} />
-        <span className="flex items-center gap-1">
+        <div className="hidden md:block">
+          <DifficultyDots value={recipe.difficulty} />
+        </div>
+        <span className="hidden md:inline-flex items-center gap-1">
           <Clock size={11} /> {recipe.estimated_days ?? "?"}d
         </span>
         {recipe.star_rating != null && recipe.star_rating > 0 && (
@@ -416,9 +414,10 @@ function FiltersPanel({
 }
 
 const RecipeVault = () => {
+  const navigate = useNavigate();
   const [activeView, setActiveView] = useState<"all" | "curated">("all");
   const [search, setSearch] = useState("");
-  const [sort, setSort] = useState<RecipeFilters["sort"]>("newest");
+  const [sort, setSort] = useState<RecipeFilters["sort"]>("most_brewed");
   const [filters, setFilters] = useState<RecipeFilters>({});
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -536,7 +535,7 @@ const RecipeVault = () => {
       </div>
 
       {/* Featured Horizontal Strip */}
-      {!isLoading && (featured ?? []).length > 0 && activeView === "all" && (
+      {!isLoading && (featured ?? []).length > 0 && (
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-3">
             <Award size={16} className="text-gold" />

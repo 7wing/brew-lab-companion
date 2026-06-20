@@ -2,11 +2,9 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Plus,
-  X,
   FlaskConical,
   Thermometer,
   Beer,
-  Calculator,
 } from "lucide-react";
 import {
   Sheet,
@@ -17,144 +15,14 @@ import {
 } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
 
-function AbvCalculatorSheet() {
-  const [og, setOg] = useState("");
-  const [fg, setFg] = useState("");
-  const abv =
-    og && fg
-      ? ((parseFloat(og) - parseFloat(fg)) * 131.25).toFixed(1)
-      : null;
-
-  return (
-    <Sheet>
-      <SheetContent side="bottom" className="rounded-t-2xl pb-8">
-        <SheetHeader>
-          <SheetTitle className="font-slab flex items-center gap-2">
-            <FlaskConical size={18} className="text-copper" />
-            ABV Calculator
-          </SheetTitle>
-        </SheetHeader>
-        <div className="mt-6 space-y-4">
-          <div>
-            <Label htmlFor="fab-og">Original Gravity (OG)</Label>
-            <input
-              id="fab-og"
-              type="number"
-              step="0.001"
-              min="1"
-              max="1.2"
-              placeholder="1.050"
-              value={og}
-              onChange={(e) => setOg(e.target.value)}
-              className="mt-1.5 w-full h-11 px-3 rounded-lg bg-muted/50 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-copper/30"
-            />
-          </div>
-          <div>
-            <Label htmlFor="fab-fg">Final Gravity (FG)</Label>
-            <input
-              id="fab-fg"
-              type="number"
-              step="0.001"
-              min="0.99"
-              max="1.2"
-              placeholder="1.010"
-              value={fg}
-              onChange={(e) => setFg(e.target.value)}
-              className="mt-1.5 w-full h-11 px-3 rounded-lg bg-muted/50 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-copper/30"
-            />
-          </div>
-          <div className="glass-panel rounded-xl p-4 text-center">
-            <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">
-              Estimated ABV
-            </p>
-            <p className="text-4xl font-mono font-bold text-copper">
-              {abv ? `${abv}%` : "—"}
-            </p>
-          </div>
-          <p className="text-[10px] text-muted-foreground text-center">
-            Formula: (OG − FG) × 131.25
-          </p>
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-}
-
-function TempConverterSheet() {
-  const [fahrenheit, setFahrenheit] = useState("");
-  const [celsius, setCelsius] = useState("");
-
-  function updateFromF(val: string) {
-    setFahrenheit(val);
-    const num = parseFloat(val);
-    if (!isNaN(num)) {
-      setCelsius(((num - 32) * 5 / 9).toFixed(1));
-    } else {
-      setCelsius("");
-    }
-  }
-
-  function updateFromC(val: string) {
-    setCelsius(val);
-    const num = parseFloat(val);
-    if (!isNaN(num)) {
-      setFahrenheit((num * 9 / 5 + 32).toFixed(1));
-    } else {
-      setFahrenheit("");
-    }
-  }
-
-  return (
-    <Sheet>
-      <SheetContent side="bottom" className="rounded-t-2xl pb-8">
-        <SheetHeader>
-          <SheetTitle className="font-slab flex items-center gap-2">
-            <Thermometer size={18} className="text-teal" />
-            Temperature Converter
-          </SheetTitle>
-        </SheetHeader>
-        <div className="mt-6 space-y-4">
-          <div>
-            <Label htmlFor="fab-f">Fahrenheit (°F)</Label>
-            <input
-              id="fab-f"
-              type="number"
-              step="0.1"
-              placeholder="68"
-              value={fahrenheit}
-              onChange={(e) => updateFromF(e.target.value)}
-              className="mt-1.5 w-full h-11 px-3 rounded-lg bg-muted/50 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30"
-            />
-          </div>
-          <div className="flex justify-center">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <span className="text-sm">⇅</span>
-            </div>
-          </div>
-          <div>
-            <Label htmlFor="fab-c">Celsius (°C)</Label>
-            <input
-              id="fab-c"
-              type="number"
-              step="0.1"
-              placeholder="20"
-              value={celsius}
-              onChange={(e) => updateFromC(e.target.value)}
-              className="mt-1.5 w-full h-11 px-3 rounded-lg bg-muted/50 border border-border/50 text-sm focus:outline-none focus:ring-2 focus:ring-teal/30"
-            />
-          </div>
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-}
-
 interface SpeedFABProps {
   show?: boolean;
 }
 
 const SpeedFAB = ({ show = true }: SpeedFABProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [abvOpen, setAbvOpen] = useState(false);
+  const [tempOpen, setTempOpen] = useState(false);
   const fabRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -203,11 +71,14 @@ const SpeedFAB = ({ show = true }: SpeedFABProps) => {
         }`}
       >
         {/* ABV Calculator */}
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
+        <Sheet open={abvOpen} onOpenChange={setAbvOpen}>
           <SheetTrigger asChild>
             <button
               className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-background/95 backdrop-blur-sm border border-border/50 shadow-lg hover:bg-muted transition-all whitespace-nowrap"
-              onClick={() => setIsOpen(false)}
+              onClick={() => {
+                setIsOpen(false);
+                setAbvOpen(true);
+              }}
             >
               <span className="p-1.5 rounded-lg bg-copper/10">
                 <FlaskConical size={16} className="text-copper" />
@@ -227,11 +98,14 @@ const SpeedFAB = ({ show = true }: SpeedFABProps) => {
         </Sheet>
 
         {/* Temp Converter */}
-        <Sheet>
+        <Sheet open={tempOpen} onOpenChange={setTempOpen}>
           <SheetTrigger asChild>
             <button
               className="flex items-center gap-3 px-4 py-2.5 rounded-xl bg-background/95 backdrop-blur-sm border border-border/50 shadow-lg hover:bg-muted transition-all whitespace-nowrap"
-              onClick={() => setIsOpen(false)}
+              onClick={() => {
+                setIsOpen(false);
+                setTempOpen(true);
+              }}
             >
               <span className="p-1.5 rounded-lg bg-teal/10">
                 <Thermometer size={16} className="text-teal" />
@@ -265,12 +139,15 @@ const SpeedFAB = ({ show = true }: SpeedFABProps) => {
       {/* Main FAB Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-14 h-14 rounded-full bg-gradient-to-br from-copper to-amber-700 text-copper-foreground shadow-xl hover:shadow-2xl transition-all flex items-center justify-center hover:scale-105 active:scale-95 ${
-          isOpen ? "rotate-45" : "rotate-0"
-        }`}
+        className="w-14 h-14 rounded-full bg-gradient-to-br from-copper to-amber-700 text-copper-foreground shadow-xl hover:shadow-2xl transition-all flex items-center justify-center hover:scale-105 active:scale-95"
         aria-label={isOpen ? "Close menu" : "Open menu"}
       >
-        <Plus size={24} className="transition-transform duration-300" />
+        <Plus
+          size={24}
+          className={`transition-transform duration-300 ${
+            isOpen ? "rotate-45" : "rotate-0"
+          }`}
+        />
       </button>
     </div>
   );

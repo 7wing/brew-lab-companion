@@ -15,6 +15,7 @@ import {
   Check,
   X,
   Settings as SettingsIcon,
+  ChevronRight,
 } from "lucide-react";
 import { copy } from "@/constants/copy";
 import {
@@ -994,13 +995,77 @@ function Section({ icon: Icon, title, description, children }: SectionProps) {
   );
 }
 
+// ─── Settings Row ────────────────────────────────────────────────────────────
+
+interface SettingsRowProps {
+  icon: React.ElementType;
+  label: string;
+  isDanger?: boolean;
+  isActive?: boolean;
+  onClick: () => void;
+  isLast?: boolean;
+}
+
+function SettingsRow({
+  icon: Icon,
+  label,
+  isDanger,
+  isActive,
+  onClick,
+  isLast,
+}: SettingsRowProps) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center justify-between w-full px-4 py-3 text-left transition-colors hover:bg-muted/20 ${
+        isActive ? "bg-copper/10 text-copper" : ""
+      } ${!isLast ? "border-b border-border/20" : ""}`}
+    >
+      <div className="flex items-center gap-3">
+        <Icon size={18} className={isDanger && !isActive ? "text-destructive" : ""} />
+        <span className={`text-sm font-medium ${isDanger && !isActive ? "text-destructive" : ""}`}>
+          {label}
+        </span>
+      </div>
+      <ChevronRight size={16} className="text-muted-foreground" />
+    </button>
+  );
+}
+
+// ─── Settings List ───────────────────────────────────────────────────────────
+
+interface SettingsListProps {
+  sections: { id: string; icon: React.ElementType; label: string; isDanger?: boolean }[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}
+
+function SettingsList({ sections, selectedId, onSelect }: SettingsListProps) {
+  return (
+    <div className="glass-panel rounded-xl p-0 overflow-hidden">
+      {sections.map((s, i) => (
+        <SettingsRow
+          key={s.id}
+          icon={s.icon}
+          label={s.label}
+          isDanger={s.isDanger}
+          isActive={selectedId === s.id}
+          onClick={() => onSelect(s.id)}
+          isLast={i === sections.length - 1}
+        />
+      ))}
+    </div>
+  );
+}
+
 // ─── Settings Page ───────────────────────────────────────────────────────────
 
 const Settings = () => {
   const navigate = useNavigate();
   const { data: profile } = useProfile();
   const updateProfile = useUpdateProfile();
-  const [activeSection, setActiveSection] = useState<string | null>(null);
+  const [selectedSection, setSelectedSection] = useState<string | null>("account");
+  const [showList, setShowList] = useState(true);
 
   const sections = [
     { id: "account", icon: User, label: copy.settings.sections.account },
@@ -1008,49 +1073,27 @@ const Settings = () => {
     { id: "notifications", icon: Bell, label: copy.settings.sections.notifications },
     { id: "preferences", icon: Sliders, label: copy.settings.sections.preferences },
     { id: "privacy", icon: Eye, label: copy.settings.sections.privacy },
-    { id: "danger", icon: AlertTriangle, label: copy.settings.sections.danger },
+    { id: "danger", icon: AlertTriangle, label: copy.settings.sections.danger, isDanger: true },
   ];
 
-  return (
-    <div className="animate-fade-in max-w-2xl mx-auto space-y-4">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <button
-          onClick={() => navigate(-1)}
-          className="p-2 rounded-lg hover:bg-muted transition-colors"
-          aria-label={copy.settings.back}
-        >
-          <ArrowLeft size={20} />
-        </button>
-        <div>
-          <h1 className="font-slab text-2xl font-bold">{copy.settings.title}</h1>
-          <p className="text-xs text-muted-foreground">{copy.settings.subtitle}</p>
-        </div>
-      </div>
+  const activeSection = sections.find((s) => s.id === selectedSection) ?? sections[0];
 
-      {/* Mobile section nav */}
-      <div className="flex gap-1 flex-wrap">
-        {sections.map((s) => (
-          <button
-            key={s.id}
-            onClick={() => {
-              setActiveSection(s.id);
-              document.getElementById(`section-${s.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
-            }}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-1.5 ${
-              activeSection === s.id
-                ? "bg-copper/20 text-copper border border-copper/30"
-                : "bg-muted/30 text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <s.icon size={12} />
-            {s.label}
-          </button>
-        ))}
-      </div>
+  function handleSelect(id: string) {
+    setSelectedSection(id);
+    setShowList(false);
+  }
 
-      {/* Sections */}
-      <div id="section-account" className="space-y-4">
+  function handleBack() {
+    if (showList) {
+      navigate(-1);
+    } else {
+      setShowList(true);
+    }
+  }
+
+  const sectionContent = (
+    <>
+      {selectedSection === "account" && (
         <Section
           icon={User}
           title={copy.settings.sections.account}
@@ -1058,7 +1101,8 @@ const Settings = () => {
         >
           <AccountSection profile={profile} updateProfile={updateProfile} />
         </Section>
-
+      )}
+      {selectedSection === "security" && (
         <Section
           icon={Shield}
           title={copy.settings.sections.security}
@@ -1066,7 +1110,8 @@ const Settings = () => {
         >
           <SecuritySection />
         </Section>
-
+      )}
+      {selectedSection === "notifications" && (
         <Section
           icon={Bell}
           title={copy.settings.sections.notifications}
@@ -1074,7 +1119,8 @@ const Settings = () => {
         >
           <NotificationsSection />
         </Section>
-
+      )}
+      {selectedSection === "preferences" && (
         <Section
           icon={Sliders}
           title={copy.settings.sections.preferences}
@@ -1082,7 +1128,8 @@ const Settings = () => {
         >
           <PreferencesSection />
         </Section>
-
+      )}
+      {selectedSection === "privacy" && (
         <Section
           icon={Eye}
           title={copy.settings.sections.privacy}
@@ -1090,7 +1137,8 @@ const Settings = () => {
         >
           <PrivacySection />
         </Section>
-
+      )}
+      {selectedSection === "danger" && (
         <Section
           icon={AlertTriangle}
           title={copy.settings.sections.danger}
@@ -1098,6 +1146,52 @@ const Settings = () => {
         >
           <DangerZoneSection />
         </Section>
+      )}
+    </>
+  );
+
+  return (
+    <div className="animate-fade-in max-w-2xl mx-auto space-y-4">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={handleBack}
+          className="p-2 rounded-lg hover:bg-muted transition-colors"
+          aria-label={copy.settings.back}
+        >
+          <ArrowLeft size={20} />
+        </button>
+        <div>
+          <h1 className="font-slab text-2xl font-bold">
+            {showList ? copy.settings.title : activeSection.label}
+          </h1>
+          <p className="text-xs text-muted-foreground">
+            {showList ? copy.settings.subtitle : ""}
+          </p>
+        </div>
+      </div>
+
+      {/* Desktop: 2-column layout */}
+      <div className="hidden md:grid md:grid-cols-[280px_1fr] md:gap-6">
+        <SettingsList
+          sections={sections}
+          selectedId={selectedSection}
+          onSelect={(id) => setSelectedSection(id)}
+        />
+        <div className="space-y-4">{sectionContent}</div>
+      </div>
+
+      {/* Mobile: list or section content */}
+      <div className="md:hidden">
+        {showList ? (
+          <SettingsList
+            sections={sections}
+            selectedId={selectedSection}
+            onSelect={handleSelect}
+          />
+        ) : (
+          <div className="space-y-4">{sectionContent}</div>
+        )}
       </div>
     </div>
   );
