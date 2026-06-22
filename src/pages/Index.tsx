@@ -1,9 +1,7 @@
 import { useState } from "react";
 import {
   FlaskConical,
-  Plus,
   Calendar,
-  Search,
   Beaker,
   AlertCircle,
   Clock,
@@ -134,24 +132,6 @@ const Index = () => {
 
   return (
     <div className="animate-fade-in">
-      {/* ─── Top action bar ─── */}
-      <div className="flex items-center justify-between gap-4 mb-6">
-        <Link
-          to="/new-brew"
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-copper to-copper/80 text-copper-foreground font-medium text-sm shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
-        >
-          <Plus size={16} />
-          {BREW.startNewBrew}
-        </Link>
-        <Link
-          to="/recipes"
-          className="p-2.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-          aria-label="Recipe Search"
-        >
-          <Search size={18} />
-        </Link>
-      </div>
-
       {/* ─── Mobile upcoming actions strip ─── */}
       {upcomingActions.length > 0 && (
         <div className="xl:hidden glass-panel rounded-xl p-4 mb-6">
@@ -270,13 +250,6 @@ const Index = () => {
                 </div>
               )}
 
-              <Link
-                to="/new-brew"
-                className="inline-flex items-center gap-2 px-6 py-3 mt-6 rounded-xl bg-gradient-to-r from-copper to-copper/80 text-copper-foreground font-medium text-sm shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5"
-              >
-                <Plus size={16} />
-                {BREW.startNewBrew}
-              </Link>
             </div>
           ) : (
             /* Lifecycle Sections */

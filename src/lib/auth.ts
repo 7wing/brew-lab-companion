@@ -38,9 +38,9 @@ export async function signInWithGoogle() {
   return data
 }
 
-export async function signInWithGitHub() {
+export async function signInWithApple() {
   const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'github',
+    provider: 'apple',
     options: { redirectTo },
   })
   if (error) throw error

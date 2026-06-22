@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { supabase } from "./supabase";
-import { signUp, signIn, signOut, signInWithGoogle, signInWithGitHub } from "./auth";
+import { signUp, signIn, signOut, signInWithGoogle, signInWithApple } from "./auth";
 
 vi.mock("./supabase", () => ({
   supabase: {
@@ -108,17 +108,17 @@ describe("auth helpers", () => {
       expect(result.url).toBe("https://google.com/oauth");
     });
 
-    it("signInWithGitHub calls supabase.auth.signInWithOAuth with github", async () => {
+    it("signInWithApple calls supabase.auth.signInWithOAuth with apple", async () => {
       (supabase.auth.signInWithOAuth as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-        data: { url: "https://github.com/oauth" },
+        data: { url: "https://apple.com/oauth" },
         error: null,
       });
 
-      const result = await signInWithGitHub();
+      const result = await signInWithApple();
       expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith(
-        expect.objectContaining({ provider: "github" })
+        expect.objectContaining({ provider: "apple" })
       );
-      expect(result.url).toBe("https://github.com/oauth");
+      expect(result.url).toBe("https://apple.com/oauth");
     });
 
     it("throws on OAuth error", async () => {

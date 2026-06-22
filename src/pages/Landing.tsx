@@ -26,7 +26,7 @@ const steps = [
   {
     number: 1,
     title: "Create your account",
-    description: "Sign up free in seconds using Google, GitHub, or email. No credit card required.",
+    description: "Sign up free in seconds using Google, Apple, or email. No credit card required.",
   },
   {
     number: 2,
