@@ -32,7 +32,6 @@ const mainNavItems = [
   { path: "/", label: "Brew Bench" },
   { path: "/recipes", label: "Recipes" },
   { path: "/community", label: "Community" },
-  { path: "/profile", label: "Profile" },
 ];
 
 const mobileTabItems = [
@@ -213,11 +212,10 @@ const AppLayoutInner = ({ children }: { children: React.ReactNode }) => {
           {location.pathname === "/" && (
             <button
               onClick={toggle}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-muted transition-colors text-sm font-medium text-muted-foreground hover:text-foreground"
+              className="p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
               aria-label="Open batch list"
             >
               <Menu size={18} />
-              <span className="text-sm">Batches</span>
             </button>
           )}
           <NotificationBell />
@@ -226,68 +224,66 @@ const AppLayoutInner = ({ children }: { children: React.ReactNode }) => {
 
       {/* ═══════════════════ Desktop Top Nav ═══════════════════ */}
       <nav
-        className="hidden lg:flex fixed top-0 left-0 right-0 z-50 h-16 items-center px-6 bg-background/80 backdrop-blur-md border-b border-border/50"
+        className="hidden lg:flex fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-background/80 backdrop-blur-md rounded-full border border-border/50 shadow-md px-4 py-2 items-center gap-4"
         aria-label="Main navigation"
       >
-        <div className="max-w-[1600px] mx-auto w-full flex items-center justify-between gap-6">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-2.5 shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-copper to-gold flex items-center justify-center">
-              <FlaskConical size={18} className="text-copper-foreground" />
-            </div>
-            <span className="font-slab font-bold text-base whitespace-nowrap">
-              Homebrew Haven
-            </span>
-          </Link>
-
-          {/* Nav Links */}
-          <div className="flex items-center gap-1">
-            {mainNavItems.map((item) => {
-              const active = isActive(item.path, location.pathname);
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`flex items-center px-3.5 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                    active
-                      ? "bg-primary/10 text-primary"
-                      : "hover:bg-muted text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-2 shrink-0">
+          <div className="w-7 h-7 rounded-md bg-gradient-to-br from-copper to-gold flex items-center justify-center">
+            <FlaskConical size={16} className="text-copper-foreground" />
           </div>
+          <span className="font-slab font-bold text-sm whitespace-nowrap">
+            Homebrew Haven
+          </span>
+        </Link>
 
-          {/* Right Utilities */}
-          <div className="flex items-center gap-3 shrink-0">
-            <NotificationBell />
-            <UserAvatar />
-          </div>
+        {/* Nav Links */}
+        <div className="flex items-center gap-1">
+          {mainNavItems.map((item) => {
+            const active = isActive(item.path, location.pathname);
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex items-center px-3.5 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                  active
+                    ? "bg-primary/10 text-primary"
+                    : "hover:bg-muted text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Right Utilities */}
+        <div className="flex items-center gap-2 shrink-0">
+          <NotificationBell />
+          <UserAvatar />
         </div>
       </nav>
 
       {/* ═══════════════════ Mobile Bottom Tab Bar ═══════════════════ */}
       <nav
-        className="flex lg:hidden fixed bottom-0 left-0 right-0 z-50 h-16 bg-background/90 backdrop-blur-md border-t border-border/50"
+        className="flex lg:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50 bg-background/90 backdrop-blur-md rounded-full border border-border/50 shadow-lg px-4 py-2 justify-center"
         aria-label="Mobile tab navigation"
       >
-        <div className="flex items-center justify-around w-full max-w-md mx-auto">
+        <div className="flex items-center w-full justify-around">
           {mobileTabItems.map((item) => {
             const active = isActive(item.path, location.pathname);
             return (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-colors min-h-[44px] min-w-[44px] justify-center ${
+                className={`flex flex-col items-center shrink-0 gap-0.5 px-1 py-1.5 rounded-xl transition-colors min-h-[44px] min-w-[44px] justify-center ${
                   active
                     ? "text-primary"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <item.icon size={20} />
-                <span className="text-[10px] font-medium leading-tight">
+                <span className="text-[10px] font-medium leading-tight whitespace-nowrap">
                   {item.label}
                 </span>
               </Link>
@@ -297,7 +293,7 @@ const AppLayoutInner = ({ children }: { children: React.ReactNode }) => {
       </nav>
 
       {/* ═══════════════════ Main Content ═══════════════════ */}
-      <main className="flex-1 pt-14 lg:pt-16 pb-16 lg:pb-0 relative z-10 overflow-y-auto">
+      <main className="flex-1 pt-14 lg:pt-20 pb-20 lg:pb-0 relative z-10 overflow-y-auto">
         <div className="p-4 md:p-6 lg:p-8 max-w-[1600px] mx-auto">
           {children}
         </div>

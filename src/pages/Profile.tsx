@@ -8,7 +8,6 @@ import {
   Trash2,
   Pencil,
   Settings,
-  LogOut,
   UserPlus,
   UserMinus,
   Loader2,
@@ -48,7 +47,6 @@ import { usePosts, useDeletePost } from "@/hooks/usePosts";
 import { useDeleteBatch } from "@/hooks/useDeleteBatch";
 import { useUpload } from "@/hooks/useUpload";
 import { useAuth } from "@/contexts/AuthContext";
-import ThemeToggle from "@/components/ThemeToggle";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -477,7 +475,7 @@ function getSrmColor(srm: number | null | undefined): string {
 // ─── Profile Page ───────────────────────────────────────────────────────────
 
 const Profile = () => {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { id: profileId } = useParams<{ id: string }>();
   const isOwnProfile = !profileId || profileId === user?.id;
@@ -818,8 +816,8 @@ const Profile = () => {
                     className="text-xs"
                     onClick={() => navigate("/settings")}
                   >
-                    <Settings size={12} className="mr-1" />
-                    {copy.settings.title}
+                    <Settings size={12} className="sm:mr-1" />
+                    <span className="hidden sm:inline">{copy.settings.title}</span>
                   </Button>
                   <Button
                     variant="outline"
@@ -827,8 +825,8 @@ const Profile = () => {
                     className="text-xs shrink-0"
                     onClick={() => setEditOpen(true)}
                   >
-                    <Pencil size={12} className="mr-1" />
-                    {copy.profile.editProfile}
+                    <Pencil size={12} className="sm:mr-1" />
+                    <span className="hidden sm:inline">{copy.profile.editProfile}</span>
                   </Button>
                 </div>
               ) : (
@@ -1428,42 +1426,6 @@ const Profile = () => {
       <div className="xl:hidden mt-6 space-y-4">
         {sidebarContent}
       </div>
-
-      {/* ── Account Settings (own profile only) ──────────────────────────────── */}
-      {isOwnProfile && (
-        <div className="glass-panel rounded-xl p-4 mt-2">
-          <h3 className="font-slab font-semibold text-sm mb-3 flex items-center gap-2">
-            <Settings size={14} className="text-copper" />
-            {copy.profile.accountSettings}
-          </h3>
-          <div className="space-y-3">
-            <div className="text-xs text-muted-foreground">
-              {copy.profile.signedInAs}{" "}
-              <span className="font-medium text-foreground">{profile?.username || user?.email}</span>
-            </div>
-            <div className="flex items-center justify-between py-1">
-              <span className="text-sm">{copy.profile.appearance}</span>
-              <ThemeToggle />
-            </div>
-            <Button
-              variant="destructive"
-              size="sm"
-              className="w-full"
-              onClick={async () => {
-                try {
-                  await signOut();
-                  navigate("/auth");
-                } catch (err: any) {
-                  toast.error(err?.message || copy.common.error);
-                }
-              }}
-            >
-              <LogOut size={14} className="mr-2" />
-              {copy.profile.signOut}
-            </Button>
-          </div>
-        </div>
-      )}
 
       {/* ── Dialogs ──────────────────────────────────────────────────────────── */}
       <ConnectionsModal

@@ -11,7 +11,6 @@ import { useYeastBank } from "@/hooks/useYeastBank";
 import { useUpload } from "@/hooks/useUpload";
 
 const mockNavigate = vi.fn();
-const mockSignOut = vi.fn();
 
 vi.mock("react-router-dom", () => ({
   useNavigate: () => mockNavigate,
@@ -140,7 +139,7 @@ const renderProfile = () => {
     user: { id: "u1", email: "test@example.com" },
     session: null,
     loading: false,
-    signOut: mockSignOut,
+    signOut: vi.fn(),
   } as any);
 
   defaultMockReturnValues();
@@ -158,35 +157,9 @@ describe("Profile page", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockNavigate.mockClear();
-    mockSignOut.mockClear();
   });
 
-  it("shows the Account Settings accordion with a Sign Out button", async () => {
-    renderProfile();
-
-    const accountSettingsButton = screen.getByText("Account Settings");
-    fireEvent.click(accountSettingsButton);
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /sign out/i })).toBeInTheDocument();
-    });
-  });
-
-  it("calls signOut and navigates to /auth when Sign Out is clicked", async () => {
-    mockSignOut.mockResolvedValue(undefined);
-
-    renderProfile();
-
-    const accountSettingsButton = screen.getByText("Account Settings");
-    fireEvent.click(accountSettingsButton);
-
-    const signOutButton = await waitFor(() => screen.getByRole("button", { name: /sign out/i }));
-    fireEvent.click(signOutButton);
-
-    await waitFor(() => {
-      expect(mockSignOut).toHaveBeenCalled();
-    });
-
-    expect(mockNavigate).toHaveBeenCalledWith("/auth");
+  it("renders without crashing", () => {
+    expect(() => renderProfile()).not.toThrow();
   });
 });

@@ -13,6 +13,7 @@ import {
   Trash2,
   Loader2,
   Check,
+  LogOut,
   X,
   Settings as SettingsIcon,
   ChevronRight,
@@ -35,6 +36,7 @@ import { useDeleteAccount } from "@/hooks/useDeleteAccount";
 import { useExportData } from "@/hooks/useExportData";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/lib/supabase";
+import ThemeToggle from "@/components/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -732,6 +734,17 @@ function PreferencesSection() {
           </SelectContent>
         </Select>
       </div>
+
+      <Separator />
+
+      {/* Appearance */}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium">{copy.profile.appearance}</p>
+          <p className="text-xs text-muted-foreground">{copy.settings.preferences.themeDesc}</p>
+        </div>
+        <ThemeToggle />
+      </div>
     </div>
   );
 }
@@ -1062,6 +1075,7 @@ function SettingsList({ sections, selectedId, onSelect }: SettingsListProps) {
 
 const Settings = () => {
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
   const { data: profile } = useProfile();
   const updateProfile = useUpdateProfile();
   const [selectedSection, setSelectedSection] = useState<string | null>("account");
@@ -1073,6 +1087,7 @@ const Settings = () => {
     { id: "notifications", icon: Bell, label: copy.settings.sections.notifications },
     { id: "preferences", icon: Sliders, label: copy.settings.sections.preferences },
     { id: "privacy", icon: Eye, label: copy.settings.sections.privacy },
+    { id: "signout", icon: LogOut, label: copy.profile.signOut },
     { id: "danger", icon: AlertTriangle, label: copy.settings.sections.danger, isDanger: true },
   ];
 
@@ -1136,6 +1151,36 @@ const Settings = () => {
           description={copy.settings.sections.privacyDesc}
         >
           <PrivacySection />
+        </Section>
+      )}
+      {selectedSection === "signout" && (
+        <Section
+          icon={LogOut}
+          title={copy.profile.signOut}
+          description=""
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              {copy.profile.signedInAs}{" "}
+              <span className="font-medium text-foreground">{profile?.username || user?.email}</span>
+            </p>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="w-full sm:w-auto"
+              onClick={async () => {
+                try {
+                  await signOut();
+                  navigate("/auth");
+                } catch (err: any) {
+                  toast.error(err?.message || copy.common.error);
+                }
+              }}
+            >
+              <LogOut size={14} className="mr-2" />
+              {copy.profile.signOut}
+            </Button>
+          </div>
         </Section>
       )}
       {selectedSection === "danger" && (

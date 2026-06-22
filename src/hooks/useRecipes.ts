@@ -27,7 +27,6 @@ export function useRecipes(filters?: RecipeFilters) {
         .select('*, profiles:user_id(id, username, avatar_url, display_name)')
         .eq('moderation_status', 'approved')
         .eq('is_public', true)
-        .order('created_at', { ascending: false })
 
       if (filters?.type && filters.type !== 'All') {
         q = q.eq('type', filters.type.toLowerCase())

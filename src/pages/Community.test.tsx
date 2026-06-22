@@ -424,15 +424,15 @@ describe("Community page", () => {
 
   it("switches tabs and updates search params", () => {
     renderCommunity();
-    const troubleshootingTab = screen.getByText("Troubleshooting");
-    fireEvent.click(troubleshootingTab);
+    const troubleshootingTabs = screen.getAllByText("Troubleshooting");
+    fireEvent.click(troubleshootingTabs[0]);
     expect(mockSetSearchParams).toHaveBeenCalled();
   });
 
   it("toggles between All and Following", () => {
     renderCommunity();
-    const followingButton = screen.getByText("Following");
-    fireEvent.click(followingButton);
+    const followingButtons = screen.getAllByText("Following");
+    fireEvent.click(followingButtons[0]);
     expect(useFollowedPosts).toHaveBeenCalled();
   });
 
@@ -461,8 +461,8 @@ describe("Community page", () => {
 
   it("renders challenges panel on Challenges tab", () => {
     renderCommunity();
-    const challengesTab = screen.getByText("Challenges");
-    fireEvent.click(challengesTab);
+    const challengesTabs = screen.getAllByText("Challenges");
+    fireEvent.click(challengesTabs[0]);
     expect(screen.getByTestId("challenges-panel")).toBeInTheDocument();
   });
 
@@ -475,10 +475,10 @@ describe("Community page", () => {
 
   it("shows sort dropdown with options", () => {
     renderCommunity();
-    const sortSelect = screen.getByRole("combobox");
-    expect(sortSelect).toBeInTheDocument();
-    expect(screen.getByText("Latest")).toBeInTheDocument();
-    expect(screen.getByText("Most Liked")).toBeInTheDocument();
-    expect(screen.getByText("Most Commented")).toBeInTheDocument();
+    const sortSelects = screen.getAllByRole("combobox");
+    expect(sortSelects.length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Latest").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Most Liked").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Most Commented").length).toBeGreaterThan(0);
   });
 });

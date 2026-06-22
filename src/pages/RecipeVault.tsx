@@ -287,13 +287,13 @@ function FiltersPanel({
         </Label>
         <Select
           value={localFilters.style ?? ""}
-          onValueChange={(v) => setLocalFilters((prev) => ({ ...prev, style: v || undefined }))}
+          onValueChange={(v) => setLocalFilters((prev) => ({ ...prev, style: v === "_all_" ? undefined : v }))}
         >
           <SelectTrigger className="h-9 text-sm">
             <SelectValue placeholder="Any style" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Any style</SelectItem>
+            <SelectItem value="_all_">Any style</SelectItem>
             {STYLE_OPTIONS.map((s) => (
               <SelectItem key={s} value={s}>{s}</SelectItem>
             ))}
@@ -473,9 +473,9 @@ const RecipeVault = () => {
 
   return (
     <div className="animate-fade-in">
-      {/* Search + Filters Row */}
-      <div className="glass-panel rounded-xl p-4 mb-4">
-        <div className="flex flex-col sm:flex-row gap-3">
+      {/* Search + Filters Row (top row) */}
+      <div className="glass-panel rounded-xl p-4 mb-2 sm:mb-4">
+        <div className="flex flex-row gap-2 items-center">
           {/* Dominant Search */}
           <div className="relative flex-1 min-w-0">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
@@ -488,12 +488,12 @@ const RecipeVault = () => {
             />
           </div>
 
-          {/* Filters Pop-up (Dialog) */}
+          {/* Filters Pop-up (Dialog) — icon-only on mobile, text+icon on desktop */}
           <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="shrink-0 gap-1.5">
-                <SlidersHorizontal size={14} />
-                Filters
+              <Button variant="outline" type="button" className="shrink-0 h-10 w-10 p-0 items-center justify-center gap-1.5 sm:w-auto sm:px-3">
+                <SlidersHorizontal size={16} />
+                <span className="hidden sm:inline">Filters</span>
                 {Object.keys(filters).filter((k) => {
                   const v = (filters as any)[k];
                   return v !== undefined && v !== "" && k !== "sort" && k !== "search";
@@ -521,60 +521,60 @@ const RecipeVault = () => {
             </DialogContent>
           </Dialog>
 
-          {/* Share Recipe Button — outlined */}
+          {/* Share Recipe Button — icon-only on mobile, text+icon on desktop */}
           <button
             onClick={() => setDialogOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-teal/40 text-teal text-sm font-medium hover:bg-teal/10 transition-all shrink-0"
+            className="h-10 w-10 flex items-center justify-center sm:w-auto sm:px-4 gap-2 rounded-xl border border-teal/40 text-teal text-sm font-medium hover:bg-teal/10 transition-all shrink-0"
           >
             <Plus size={16} />
-            {RECIPE.shareRecipe}
+            <span className="hidden sm:inline">{RECIPE.shareRecipe}</span>
           </button>
 
           <ShareRecipeWizard open={dialogOpen} onOpenChange={setDialogOpen} />
         </div>
+      </div>
 
-        {/* All / Curated Toggle + Sort Row */}
-        <div className="flex items-center justify-between mt-3 pt-3 border-t border-border/30 gap-4 flex-wrap">
-          {/* All / Curated toggle */}
-          <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/40">
-            <button
-              onClick={() => setActiveView("all")}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                activeView === "all"
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setActiveView("curated")}
-              className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
-                activeView === "curated"
-                  ? "bg-gold/20 text-gold shadow-sm border border-gold/20"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              Curated
-            </button>
-          </div>
+      {/* All / Curated Toggle + Sort Row — full width on all breakpoints */}
+      <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
+        {/* All / Curated toggle */}
+        <div className="flex items-center gap-1 p-1 rounded-lg bg-muted/40">
+          <button
+            onClick={() => setActiveView("all")}
+            className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+              activeView === "all"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            All
+          </button>
+          <button
+            onClick={() => setActiveView("curated")}
+            className={`px-3 py-1 rounded-md text-xs font-medium transition-all ${
+              activeView === "curated"
+                ? "bg-gold/20 text-gold shadow-sm border border-gold/20"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Curated
+          </button>
+        </div>
 
-          {/* Sort Dropdown */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground">{ACTIONS.sort}:</span>
-            <Select value={sort} onValueChange={(v: RecipeFilters["sort"]) => setSort(v)}>
-              <SelectTrigger className="h-8 w-40 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {SORT_OPTIONS.map((o) => (
-                  <SelectItem key={o.value} value={o.value} className="text-xs">
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        {/* Sort Dropdown */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">{ACTIONS.sort}:</span>
+          <Select value={sort} onValueChange={(v: RecipeFilters["sort"]) => setSort(v)}>
+            <SelectTrigger className="h-8 w-40 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SORT_OPTIONS.map((o) => (
+                <SelectItem key={o.value} value={o.value} className="text-xs">
+                  {o.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

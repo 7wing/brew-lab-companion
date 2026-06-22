@@ -131,40 +131,82 @@ const Community = () => {
         />
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-4 glass-panel rounded-xl p-1 w-full md:w-fit overflow-x-auto scrollbar-hide mx-auto">
-        {POST_TABS.map((tab, i) => (
-          <button
-            key={tab.label}
-            onClick={() => {
-              setActiveTab(i);
-              setPage(1);
-              setSearchQuery("");
-              if (tab.panel) {
-                setSearchParams({ tab: tab.panel });
-              } else if (tab.category) {
-                setSearchParams({ tab: tab.category });
-              } else {
-                setSearchParams({});
-              }
-              setSearchQuery("");
-            }}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap shrink-0 ${
-              activeTab === i
-                ? "bg-primary text-primary-foreground shadow-md"
-                : "text-muted-foreground hover:bg-muted"
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
+      {/* Mobile controls layout */}
+      <div className="flex md:hidden flex-col mb-6 gap-2">
+        {/* Row 1: Tabs */}
+        <div className="flex justify-center">
+          <div className="w-full md:w-fit flex gap-1 glass-panel rounded-xl p-1 overflow-x-auto scrollbar-hide">
+            {POST_TABS.map((tab, i) => (
+              <button
+                key={tab.label}
+                onClick={() => {
+                  setActiveTab(i);
+                  setPage(1);
+                  setSearchQuery("");
+                  if (tab.panel) {
+                    setSearchParams({ tab: tab.panel });
+                  } else if (tab.category) {
+                    setSearchParams({ tab: tab.category });
+                  } else {
+                    setSearchParams({});
+                  }
+                  setSearchQuery("");
+                }}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap shrink-0 ${
+                  activeTab === i
+                    ? "bg-primary text-primary-foreground shadow-md"
+                    : "text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Row 2: All/Following + Sort */}
+        {!isChallengesPanel && (
+          <div className="flex items-center justify-between gap-2">
+            <div className="shrink-0 flex gap-1 glass-panel rounded-lg p-1">
+              <button
+                onClick={() => { setShowFollowing(false); setPage(1); }}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                  !showFollowing
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => { setShowFollowing(true); setPage(1); }}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                  showFollowing
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                Following
+              </button>
+            </div>
+            <select
+              value={sortBy}
+              onChange={(e) => { setSortBy(e.target.value as SortOption); setPage(1); }}
+              className="shrink-0 h-9 px-3 pr-8 rounded-lg glass-panel border border-border/50 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-teal/30 cursor-pointer appearance-none"
+            >
+              <option value="latest">Latest</option>
+              <option value="most_liked">Most Liked</option>
+              <option value="most_commented">Most Commented</option>
+            </select>
+          </div>
+        )}
       </div>
 
-      {/* All/Following toggle + Sort dropdown */}
-      {!isChallengesPanel && (
-        <div className="flex items-center justify-between mb-6 gap-4">
-          {/* All / Following toggle */}
-          <div className="flex gap-1 glass-panel rounded-lg p-1">
+      {/* Desktop controls layout */}
+      <div className="hidden md:flex items-center justify-between mb-6 gap-2">
+        {/* Left: All / Following toggle */}
+        {!isChallengesPanel ? (
+          <div className="shrink-0 flex gap-1 glass-panel rounded-lg p-1">
             <button
               onClick={() => { setShowFollowing(false); setPage(1); }}
               className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
@@ -186,21 +228,62 @@ const Community = () => {
               Following
             </button>
           </div>
+        ) : (
+          <div className="shrink-0" />
+        )}
 
-          {/* Sort dropdown */}
+        {/* Center: Tabs */}
+        <div className="flex-1 min-w-0 flex justify-center">
+          <div className="flex gap-1 glass-panel rounded-xl p-1 overflow-x-auto scrollbar-hide">
+            {POST_TABS.map((tab, i) => (
+              <button
+                key={tab.label}
+                onClick={() => {
+                  setActiveTab(i);
+                  setPage(1);
+                  setSearchQuery("");
+                  if (tab.panel) {
+                    setSearchParams({ tab: tab.panel });
+                  } else if (tab.category) {
+                    setSearchParams({ tab: tab.category });
+                  } else {
+                    setSearchParams({});
+                  }
+                  setSearchQuery("");
+                }}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-all whitespace-nowrap shrink-0 ${
+                  activeTab === i
+                    ? "bg-primary text-primary-foreground shadow-md"
+                    : "text-muted-foreground hover:bg-muted"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Right: Sort dropdown */}
+        {!isChallengesPanel ? (
           <select
             value={sortBy}
             onChange={(e) => { setSortBy(e.target.value as SortOption); setPage(1); }}
-            className="h-9 px-3 pr-8 rounded-lg glass-panel border border-border/50 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-teal/30 cursor-pointer appearance-none"
+            className="shrink-0 h-9 px-3 pr-8 rounded-lg glass-panel border border-border/50 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-teal/30 cursor-pointer appearance-none"
           >
             <option value="latest">Latest</option>
             <option value="most_liked">Most Liked</option>
             <option value="most_commented">Most Commented</option>
           </select>
+        ) : (
+          <div className="shrink-0" />
+        )}
+      </div>
+
+      {isChallengesPanel && (
+        <div className="max-w-3xl mx-auto">
+          <ChallengesPanel />
         </div>
       )}
-
-      {isChallengesPanel && <ChallengesPanel />}
 
       {!isChallengesPanel && (
         isLoading ? (

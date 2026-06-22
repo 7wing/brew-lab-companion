@@ -504,7 +504,7 @@ const BatchDetail = () => {
         <div className="flex gap-2 mt-4 flex-wrap">
           <Dialog open={logOpen} onOpenChange={setLogOpen}>
             <DialogTrigger asChild>
-              <button className="px-3 py-2 rounded-lg bg-gradient-to-r from-copper to-copper/80 text-copper-foreground text-sm font-medium flex items-center gap-2">
+              <button type="button" className="px-3 py-2 rounded-lg bg-gradient-to-r from-copper to-copper/80 text-copper-foreground text-sm font-medium flex items-center gap-2">
                 <Plus size={14} /> Log Reading
               </button>
             </DialogTrigger>
@@ -977,6 +977,7 @@ const BatchDetail = () => {
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button
+                        type="button"
                         size="sm"
                         className="bg-gradient-to-r from-green-600 to-green-500"
                       >
@@ -1021,7 +1022,7 @@ const BatchDetail = () => {
         <div className="mt-8 flex justify-center">
           <Dialog open={stageConfirmOpen} onOpenChange={setStageConfirmOpen}>
             <DialogTrigger asChild>
-              <button className="px-6 py-3 rounded-xl bg-gradient-to-r from-teal to-teal/80 text-white font-medium text-sm flex items-center gap-2 hover:shadow-lg hover:shadow-teal/20 transition-all">
+              <button type="button" className="px-6 py-3 rounded-xl bg-gradient-to-r from-teal to-teal/80 text-white font-medium text-sm flex items-center gap-2 hover:shadow-lg hover:shadow-teal/20 transition-all">
                 Move to {nextStageLabel} →
                 <ArrowLeft size={14} className="rotate-180" />
               </button>
