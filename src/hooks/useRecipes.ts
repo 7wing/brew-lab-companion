@@ -9,6 +9,8 @@ export interface RecipeFilters {
   batchSize?: number
   abvMin?: number
   abvMax?: number
+  fermentTimeMin?: number
+  fermentTimeMax?: number
   curated?: boolean
   sort?: 'most_brewed' | 'highest_rated' | 'newest' | 'quickest'
   search?: string
@@ -44,6 +46,12 @@ export function useRecipes(filters?: RecipeFilters) {
       }
       if (filters?.abvMax != null) {
         q = q.lte('abv', filters.abvMax)
+      }
+      if (filters?.fermentTimeMin != null) {
+        q = q.gte('estimated_days', filters.fermentTimeMin)
+      }
+      if (filters?.fermentTimeMax != null) {
+        q = q.lte('estimated_days', filters.fermentTimeMax)
       }
       if (filters?.curated === true) {
         q = q.eq('curated', true)

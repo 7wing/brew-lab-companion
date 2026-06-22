@@ -56,6 +56,7 @@ import { useBatch, useUpdateBatch } from "@/hooks/useBatches";
 import { useReadings, useCreateReading } from "@/hooks/useReadings";
 import { useDeleteBatch } from "@/hooks/useDeleteBatch";
 import { useUpdateBatchStage } from "@/hooks/useUpdateBatchStage";
+import { useToggleBatchStage } from "@/hooks/useToggleBatchStage";
 import { LIFECYCLE_ORDER, LIFECYCLE_LABELS, type LifecycleStatus } from "@/lib/lifecycle";
 import { ACTIONS, BREW } from "@/constants/copy";
 
@@ -67,6 +68,7 @@ const BatchDetail = () => {
   const createReading = useCreateReading();
   const updateBatch = useUpdateBatch();
   const updateBatchStage = useUpdateBatchStage();
+  const toggleBatchStage = useToggleBatchStage();
   const deleteBatch = useDeleteBatch();
 
   const [logOpen, setLogOpen] = useState(false);
@@ -578,18 +580,22 @@ const BatchDetail = () => {
                 {(batch.batch_stages ?? [])
                   .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
                   .map((stage: any, i: number) => (
-                    <div key={i} className="flex items-start gap-3">
+                    <div
+                      key={i}
+                      className="flex items-start gap-3 cursor-pointer group"
+                      onClick={() => toggleBatchStage.mutate({ stageId: stage.id, completed: !stage.completed })}
+                    >
                       <div
-                        className={`mt-0.5 w-4 h-4 rounded border-2 shrink-0 flex items-center justify-center ${
+                        className={`mt-0.5 w-4 h-4 rounded border-2 shrink-0 flex items-center justify-center transition-colors ${
                           stage.completed
                             ? "bg-teal border-teal"
-                            : "bg-background border-border/60"
+                            : "bg-background border-border/60 group-hover:border-teal/60"
                         }`}
                       >
                         {stage.completed && <Check size={10} className="text-white" />}
                       </div>
                       <div>
-                        <p className={`text-sm font-medium ${stage.completed ? "line-through opacity-60" : ""}`}>
+                        <p className={`text-sm font-medium transition-opacity ${stage.completed ? "line-through opacity-60" : ""}`}>
                           {stage.name}
                         </p>
                         {stage.scheduled && (
@@ -679,12 +685,16 @@ const BatchDetail = () => {
                   {(batch.batch_stages ?? [])
                     .sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
                     .map((stage: any, i: number) => (
-                      <div key={i} className="flex gap-4 relative">
+                      <div
+                        key={i}
+                        className="flex gap-4 relative cursor-pointer group"
+                        onClick={() => toggleBatchStage.mutate({ stageId: stage.id, completed: !stage.completed })}
+                      >
                         <div
-                          className={`w-4 h-4 rounded-full border-2 mt-0.5 shrink-0 z-10 ${
+                          className={`w-4 h-4 rounded-full border-2 mt-0.5 shrink-0 z-10 transition-colors ${
                             stage.completed
                               ? "bg-teal border-teal"
-                              : "bg-background border-border"
+                              : "bg-background border-border group-hover:border-teal/60"
                           }`}
                         />
                         <div className={`flex-1 ${!stage.completed ? "opacity-60" : ""}`}>

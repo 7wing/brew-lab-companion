@@ -77,6 +77,11 @@ function formatDate(dateStr: string): string {
   });
 }
 
+function formatDateShort(dateStr: string): string {
+  const d = new Date(dateStr);
+  return `${d.getMonth() + 1}/${d.getDate()}`;
+}
+
 function UrgencyDot({ level }: { level: "overdue" | "today" | "upcoming" }) {
   if (level === "overdue")
     return <span className="inline-block w-2 h-2 rounded-full bg-red-400 shrink-0" />;
@@ -302,7 +307,7 @@ const Index = () => {
         </section>
 
         {/* Right panel — upcoming actions (desktop) + recent readings */}
-        <aside className="w-full xl:w-[280px] shrink-0 space-y-4">
+        <aside className="w-full xl:w-[340px] shrink-0 space-y-4">
           {/* Desktop upcoming actions */}
           {upcomingActions.length > 0 && (
             <div className="hidden xl:block glass-panel rounded-xl p-4">
@@ -360,19 +365,19 @@ const Index = () => {
                 <table className="w-full text-sm" role="table">
                   <thead>
                     <tr className="border-b border-border/30">
-                      <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">
+                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">
                         Date
                       </th>
-                      <th className="text-right px-4 py-2 text-xs font-medium text-muted-foreground">
+                      <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground">
                         SG
                       </th>
-                      <th className="text-right px-4 py-2 text-xs font-medium text-muted-foreground">
+                      <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground">
                         °F
                       </th>
-                      <th className="text-right px-4 py-2 text-xs font-medium text-muted-foreground">
+                      <th className="text-right px-3 py-2 text-xs font-medium text-muted-foreground">
                         pH
                       </th>
-                      <th className="text-left px-4 py-2 text-xs font-medium text-muted-foreground">
+                      <th className="text-left px-3 py-2 text-xs font-medium text-muted-foreground">
                         Batch
                       </th>
                     </tr>
@@ -383,19 +388,19 @@ const Index = () => {
                         key={r.id}
                         className="border-b border-border/20 hover:bg-muted/30 transition-colors"
                       >
-                        <td className="px-4 py-2.5 font-medium">
+                        <td className="px-3 py-2 font-medium whitespace-nowrap">
                           {r.read_at
-                            ? formatDate(r.read_at)
+                            ? formatDateShort(r.read_at)
                             : "—"}
                         </td>
-                        <td className={`px-4 py-2.5 text-right font-mono ${idx === 0 ? "text-copper font-semibold" : ""}`}>
+                        <td className={`px-3 py-2 text-right font-mono whitespace-nowrap ${idx === 0 ? "text-copper font-semibold" : ""}`}>
                           {Number(r.gravity).toFixed(3)}
                         </td>
-                        <td className="px-4 py-2.5 text-right">
+                        <td className="px-3 py-2 text-right whitespace-nowrap">
                           {r.temp_f ?? "—"}
                         </td>
-                        <td className="px-4 py-2.5 text-right">{r.ph ?? "—"}</td>
-                        <td className="px-4 py-2.5 text-xs text-muted-foreground max-w-[80px] truncate">
+                        <td className="px-3 py-2 text-right whitespace-nowrap">{r.ph ?? "—"}</td>
+                        <td className="px-3 py-2 text-xs text-muted-foreground whitespace-nowrap">
                           {r.batch?.name ?? "—"}
                         </td>
                       </tr>

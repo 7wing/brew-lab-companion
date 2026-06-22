@@ -1,27 +1,23 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
 import {
   Search,
-  FlaskConical,
-  Filter,
   Star,
   Clock,
   Percent,
   Plus,
   SlidersHorizontal,
-  ChevronDown,
   Award,
 } from "lucide-react";
 import { ShareRecipeWizard } from "@/components/ShareRecipeWizard"
 
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,7 +28,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { useRecipes, useFeaturedRecipes, useUpdateRecipe, useDeleteRecipe, type RecipeFilters } from "@/hooks/useRecipes";
 import { RECIPE, ACTIONS } from "@/constants/copy";
 
@@ -360,6 +355,47 @@ function FiltersPanel({
         </div>
       </div>
 
+      {/* Fermentation Time */}
+      <div>
+        <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 block">
+          Fermentation Time
+        </Label>
+        <div className="flex items-center gap-2">
+          <Input
+            type="number"
+            placeholder="Min days"
+            min={1}
+            max={365}
+            step={1}
+            className="h-9 text-sm"
+            value={localFilters.fermentTimeMin ?? ""}
+            onChange={(e) =>
+              setLocalFilters((prev) => ({
+                ...prev,
+                fermentTimeMin: e.target.value ? Number(e.target.value) : undefined,
+              }))
+            }
+          />
+          <span className="text-muted-foreground text-xs">–</span>
+          <Input
+            type="number"
+            placeholder="Max days"
+            min={1}
+            max={365}
+            step={1}
+            className="h-9 text-sm"
+            value={localFilters.fermentTimeMax ?? ""}
+            onChange={(e) =>
+              setLocalFilters((prev) => ({
+                ...prev,
+                fermentTimeMax: e.target.value ? Number(e.target.value) : undefined,
+              }))
+            }
+          />
+          <span className="text-muted-foreground text-xs">days</span>
+        </div>
+      </div>
+
       {/* ABV Range */}
       <div>
         <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2 block">
@@ -452,13 +488,16 @@ const RecipeVault = () => {
             />
           </div>
 
-          {/* Filters Dropdown */}
-          <DropdownMenu open={filtersOpen} onOpenChange={setFiltersOpen}>
-            <DropdownMenuTrigger asChild>
+          {/* Filters Pop-up (Dialog) */}
+          <Dialog open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <DialogTrigger asChild>
               <Button variant="outline" size="sm" className="shrink-0 gap-1.5">
                 <SlidersHorizontal size={14} />
                 Filters
-                {Object.keys(filters).length > 0 && (
+                {Object.keys(filters).filter((k) => {
+                  const v = (filters as any)[k];
+                  return v !== undefined && v !== "" && k !== "sort" && k !== "search";
+                }).length > 0 && (
                   <span className="w-4 h-4 rounded-full bg-copper text-copper-foreground text-[10px] font-bold flex items-center justify-center">
                     {Object.keys(filters).filter((k) => {
                       const v = (filters as any)[k];
@@ -467,15 +506,20 @@ const RecipeVault = () => {
                   </span>
                 )}
               </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-72 p-4">
-              <FiltersPanel
-                filters={filters}
-                onChange={(f) => { setFilters(f); }}
-                onClear={() => { setFilters({}); setFiltersOpen(false); }}
-              />
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto p-0">
+              <DialogHeader className="px-6 pt-6 pb-2">
+                <DialogTitle className="text-base font-semibold">Filters</DialogTitle>
+              </DialogHeader>
+              <div className="px-6 pb-6">
+                <FiltersPanel
+                  filters={filters}
+                  onChange={(f) => { setFilters(f); setFiltersOpen(false); }}
+                  onClear={() => { setFilters({}); setFiltersOpen(false); }}
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* Share Recipe Button — outlined */}
           <button
@@ -553,8 +597,6 @@ const RecipeVault = () => {
           </div>
         </div>
       )}
-
-      {/* Recipe Grid */}
 
       {/* Recipe Grid */}
       {isLoading ? (
